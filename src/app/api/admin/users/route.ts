@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { db } from "@/lib/db"
 import { requireAdmin } from "@/lib/auth-helpers"
 import { createSignupBonus, processReferralCommission } from "@/lib/commission-engine"
+import { getMembershipFee } from "@/lib/settings"
 import bcrypt from "bcryptjs"
 
 export async function GET(request: NextRequest) {
@@ -151,11 +152,12 @@ export async function PATCH(request: NextRequest) {
     })
 
     if (status === "active" && user.status === "pending") {
+      const membershipFee = await getMembershipFee()
       await db.transaction.create({
         data: {
           userId,
           type: "payment",
-          amount: 1000,
+          amount: membershipFee,
           status: "completed",
           reference: `ADMIN-ACTIVATE-${Date.now()}`,
           description: "Manual activation by admin",
