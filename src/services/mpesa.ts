@@ -5,7 +5,9 @@ function env(name: string, fallback = ""): string {
 const CONSUMER_KEY = env("MPESA_CONSUMER_KEY")
 const CONSUMER_SECRET = env("MPESA_CONSUMER_SECRET")
 const PASSKEY = env("MPESA_PASSKEY")
-const BUSINESS_SHORTCODE = env("MPESA_BUSINESS_SHORTCODE")
+const PAYBILL_NUMBER = env("MPESA_BUSINESS_SHORTCODE")
+const STORE_NUMBER = env("MPESA_STORE_NUMBER")
+const TILL_NUMBER = env("MPESA_TILL_NUMBER")
 const CALLBACK_URL = env("MPESA_CALLBACK_URL")
 const ENVIRONMENT = env("MPESA_ENVIRONMENT", "sandbox").toLowerCase()
 const SHORTCODE_TYPE = env("MPESA_SHORTCODE_TYPE", "paybill").toLowerCase()
@@ -14,14 +16,30 @@ const BASE_URL = ENVIRONMENT === "production"
   ? "https://api.safaricom.co.ke"
   : "https://sandbox.safaricom.co.ke"
 
+function isBuyGoods(): boolean {
+  return SHORTCODE_TYPE === "till" || SHORTCODE_TYPE === "buygoods"
+}
+
 /**
  * Paybill and Buy Goods (Till) STK requests use different transaction types.
  * Using Paybill against a Till shortcode returns Safaricom result code 2029.
  */
 function getTransactionType(): "CustomerPayBillOnline" | "CustomerBuyGoodsOnline" {
-  return SHORTCODE_TYPE === "till" || SHORTCODE_TYPE === "buygoods"
-    ? "CustomerBuyGoodsOnline"
-    : "CustomerPayBillOnline"
+  return isBuyGoods() ? "CustomerBuyGoodsOnline" : "CustomerPayBillOnline"
+}
+
+/**
+ * For Buy Goods, BusinessShortCode must be the Store/H.O number used during
+ * Daraja Go Live, while PartyB must be the actual Till number.
+ */
+function getBusinessShortCode(): string {
+  // MPESA_BUSINESS_SHORTCODE is the Store/H.O number in Till mode. It is kept
+  // as a fallback so existing deployments only need to add the Till number.
+  return isBuyGoods() ? STORE_NUMBER || PAYBILL_NUMBER : PAYBILL_NUMBER
+}
+
+function getPartyB(): string {
+  return isBuyGoods() ? TILL_NUMBER : PAYBILL_NUMBER
 }
 
 function hasPlaceholder(value: string): boolean {
@@ -33,7 +51,8 @@ function isConfigured(): boolean {
     CONSUMER_KEY &&
     CONSUMER_SECRET &&
     PASSKEY &&
-    BUSINESS_SHORTCODE &&
+    getBusinessShortCode() &&
+    getPartyB() &&
     CALLBACK_URL &&
     !hasPlaceholder(CALLBACK_URL)
   )
@@ -73,8 +92,8 @@ function getTimestamp(): string {
   return `${year}${month}${day}${hours}${minutes}${seconds}`
 }
 
-function getPassword(timestamp: string): string {
-  const raw = `${BUSINESS_SHORTCODE}${PASSKEY}${timestamp}`
+function getPassword(timestamp: string, shortcode: string): string {
+  const raw = `${shortcode}${PASSKEY}${timestamp}`
   return Buffer.from(raw).toString("base64")
 }
 
@@ -138,6 +157,15 @@ export async function stkPush(
     }
   }
 
+  if (isBuyGoods() && !TILL_NUMBER) {
+    console.error("[M-Pesa] Buy Goods configured without MPESA_TILL_NUMBER")
+    return {
+      success: false,
+      error:
+        "M-Pesa Till setup is incomplete. Set MPESA_TILL_NUMBER (the Till customers pay to).",
+    }
+  }
+
   if (!isConfigured()) {
     console.error("[M-Pesa] STK push requested but credentials are not configured")
     return { success: false, error: "M-Pesa payments are not configured. Please contact support." }
@@ -145,20 +173,22 @@ export async function stkPush(
 
   try {
     const timestamp = getTimestamp()
-    const password = getPassword(timestamp)
+    const businessShortCode = getBusinessShortCode()
+    const partyB = getPartyB()
+    const password = getPassword(timestamp, businessShortCode)
     const token = await getAccessToken()
     if (!token) {
       return { success: false, error: "Could not authenticate with M-Pesa. Please try again." }
     }
 
     const body = {
-      BusinessShortCode: BUSINESS_SHORTCODE,
+      BusinessShortCode: businessShortCode,
       Password: password,
       Timestamp: timestamp,
       TransactionType: getTransactionType(),
       Amount: Math.round(amount),
       PartyA: partyA,
-      PartyB: BUSINESS_SHORTCODE,
+      PartyB: partyB,
       PhoneNumber: partyA,
       CallBackURL: CALLBACK_URL,
       AccountReference: accountRef.slice(0, 12),
@@ -168,7 +198,8 @@ export async function stkPush(
     console.log("[M-Pesa] Sending STK push", {
       environment: ENVIRONMENT,
       transactionType: getTransactionType(),
-      shortcode: `${BUSINESS_SHORTCODE.slice(0, 3)}***`,
+      storeNumber: `${businessShortCode.slice(0, 3)}***`,
+      tillNumber: `${partyB.slice(0, 3)}***`,
       amount: Math.round(amount),
       accountRef,
     })
@@ -231,14 +262,15 @@ export async function queryStatus(
 
   try {
     const timestamp = getTimestamp()
-    const password = getPassword(timestamp)
+    const businessShortCode = getBusinessShortCode()
+    const password = getPassword(timestamp, businessShortCode)
     const token = await getAccessToken()
     if (!token) {
       return { status: "pending", error: "Could not authenticate with M-Pesa" }
     }
 
     const body = {
-      BusinessShortCode: BUSINESS_SHORTCODE,
+      BusinessShortCode: businessShortCode,
       Password: password,
       Timestamp: timestamp,
       CheckoutRequestID: checkoutRequestId,
