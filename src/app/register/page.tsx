@@ -8,9 +8,12 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { usePublicSettings } from "@/hooks/use-public-settings"
 
 function RegisterForm() {
   const router = useRouter()
+  const { membershipFee } = usePublicSettings()
+  const feeLabel = membershipFee.toLocaleString("en-KE")
   const [showPassword, setShowPassword] = useState(false)
   const [form, setForm] = useState({ name: "", email: "", phone: "", password: "", referral: "" })
   const [error, setError] = useState("")
@@ -82,7 +85,8 @@ function RegisterForm() {
       router.push(
         `/register/waiting?checkout=${encodeURIComponent(data.checkoutRequestId || "")}` +
           `&phone=${encodeURIComponent(data.phone || phoneClean)}` +
-          `&reference=${encodeURIComponent(data.reference || "")}`
+          `&reference=${encodeURIComponent(data.reference || "")}` +
+          `&amount=${encodeURIComponent(String(data.amount || membershipFee))}`
       )
     } catch {
       setError("Network error. Please try again.")
@@ -180,7 +184,7 @@ function RegisterForm() {
                 <div className="flex-1 min-w-0">
                   <p className="font-heading font-semibold text-sm text-lux-navy">One-Time Membership Fee</p>
                   <p className="text-sm text-lux-text-light mt-1">
-                    Pay <strong className="text-lux-navy">KES 1,000</strong> via M-Pesa STK Push to activate your account and start earning. Get <strong className="text-lux-gold">KES 500 airtime bonus</strong> instantly.
+                    Pay <strong className="text-lux-navy">KES {feeLabel}</strong> via M-Pesa STK Push to activate your account and start earning. Get <strong className="text-lux-gold">KES 500 airtime bonus</strong> instantly.
                   </p>
                 </div>
               </div>
@@ -188,7 +192,7 @@ function RegisterForm() {
 
             <Button type="submit" disabled={loading} className="w-full bg-lux-gold hover:bg-lux-gold-dark text-white font-heading font-bold h-11 rounded-lg shadow-lg shadow-lux-gold/25 hover:shadow-xl transition-all btn-shine">
               {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Smartphone className="h-4 w-4" />}
-              {loading ? "Sending M-Pesa Prompt..." : "Pay KES 1,000 via M-Pesa"}
+              {loading ? "Sending M-Pesa Prompt..." : `Pay KES ${feeLabel} via M-Pesa`}
             </Button>
           </form>
 

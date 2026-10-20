@@ -9,9 +9,11 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { signIn, getSession } from "next-auth/react"
+import { usePublicSettings } from "@/hooks/use-public-settings"
 
 export default function LoginPage() {
   const router = useRouter()
+  const { membershipFee } = usePublicSettings()
   const [showPassword, setShowPassword] = useState(false)
   const [login, setLogin] = useState("")
   const [password, setPassword] = useState("")
@@ -21,8 +23,10 @@ export default function LoginPage() {
   const [paymentState, setPaymentState] = useState<"idle" | "initiating" | "polling" | "success">("idle")
   const [payReference, setPayReference] = useState("")
   const [payCheckoutRequestId, setPayCheckoutRequestId] = useState("")
+  const [payAmount, setPayAmount] = useState(0)
   const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const passwordRef = useRef("")
+  const feeLabel = (payAmount || membershipFee).toLocaleString("en-KE")
 
   useEffect(() => {
     return () => {
@@ -99,7 +103,7 @@ export default function LoginPage() {
 
       if (result?.error) {
         if (result.error === "PENDING_PAYMENT") {
-          setError("You haven't completed your registration payment. Please pay the KES 1,000 membership fee to activate your account.")
+          setError(`You haven't completed your registration payment. Please pay the KES ${feeLabel} membership fee to activate your account.`)
           setNeedsPayment(true)
           return
         }
@@ -140,6 +144,7 @@ export default function LoginPage() {
       }
       setPayReference(data.reference)
       setPayCheckoutRequestId(data.checkoutRequestId)
+      setPayAmount(data.amount || membershipFee)
       setPaymentState("polling")
     } catch {
       setError("Network error. Please try again.")
@@ -162,7 +167,7 @@ export default function LoginPage() {
             </div>
             <CardTitle className="font-heading text-2xl text-lux-navy mb-2">Check Your Phone</CardTitle>
             <CardDescription className="text-lux-text-light text-base leading-relaxed">
-              Enter your M-Pesa PIN on your phone to complete the KES 1,000 membership payment.
+              Enter your M-Pesa PIN on your phone to complete the KES {feeLabel} membership payment.
             </CardDescription>
 
             <div className="mt-8 space-y-4">
@@ -290,7 +295,7 @@ export default function LoginPage() {
                 ) : (
                   <Smartphone className="h-4 w-4" />
                 )}
-                {paymentState === "initiating" ? "Sending M-Pesa Prompt..." : "Pay KES 1,000 via M-Pesa"}
+                {paymentState === "initiating" ? "Sending M-Pesa Prompt..." : `Pay KES ${feeLabel} via M-Pesa`}
               </Button>
             </div>
           )}

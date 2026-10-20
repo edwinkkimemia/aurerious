@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation"
 import { AlertCircle, ArrowLeft, CheckCircle2, Loader2, Smartphone } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardTitle } from "@/components/ui/card"
+import { usePublicSettings } from "@/hooks/use-public-settings"
 
 type PaymentState = "waiting" | "success" | "failed" | "missing"
 
@@ -15,6 +16,10 @@ function WaitingContent() {
   const checkoutRequestId = params.get("checkout") || ""
   const phone = params.get("phone") || ""
   const reference = params.get("reference") || ""
+  const { membershipFee } = usePublicSettings()
+  const requestedAmount = Number(params.get("amount"))
+  const amount = Number.isFinite(requestedAmount) && requestedAmount > 0 ? requestedAmount : membershipFee
+  const amountLabel = amount.toLocaleString("en-KE")
 
   const [state, setState] = useState<PaymentState>(checkoutRequestId ? "waiting" : "missing")
   const [message, setMessage] = useState("")
@@ -93,7 +98,7 @@ function WaitingContent() {
                 Check Your Phone
               </CardTitle>
               <CardDescription className="text-lux-text-light text-base leading-relaxed">
-                An M-Pesa payment prompt for <strong className="text-lux-navy">KES 1,000</strong>
+                An M-Pesa payment prompt for <strong className="text-lux-navy">KES {amountLabel}</strong>
                 {phone ? <> has been sent to <strong className="text-lux-navy">{phone}</strong></> : " has been sent to your phone"}.
                 Enter your M-Pesa PIN to activate your account.
               </CardDescription>

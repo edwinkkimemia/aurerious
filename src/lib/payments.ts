@@ -1,8 +1,7 @@
 import { db } from "@/lib/db"
 import { createSignupBonus, processReferralCommission } from "@/lib/commission-engine"
+import { getMembershipFee } from "@/lib/settings"
 import { isValidKenyanPhone, normalizePhone, stkPush } from "@/services/mpesa"
-
-export const MEMBERSHIP_FEE = 1000
 
 /** Safaricom AccountReference is limited to 12 characters. */
 export function generatePaymentReference(): string {
@@ -19,6 +18,7 @@ export async function initiateMembershipPayment(params: {
   checkoutRequestId?: string
   reference?: string
   phone?: string
+  amount?: number
   error?: string
 }> {
   const phone = normalizePhone(params.phone)
@@ -27,12 +27,15 @@ export async function initiateMembershipPayment(params: {
     return { success: false, error: "Enter a valid Kenyan M-Pesa number (07XX or 01XX)" }
   }
 
+  const amount = await getMembershipFee()
+
   // Reuse a recent prompt so double-clicks don't send multiple STK requests.
   const recent = await db.mpesaTransaction.findFirst({
     where: {
       userId: params.userId,
       type: "registration",
       status: "pending",
+      amount,
       createdAt: { gte: new Date(Date.now() - 60_000) },
       checkoutRequestId: { not: null },
     },
@@ -45,6 +48,7 @@ export async function initiateMembershipPayment(params: {
       checkoutRequestId: recent.checkoutRequestId,
       reference: recent.reference,
       phone: recent.phone,
+      amount: recent.amount,
     }
   }
 
@@ -55,14 +59,14 @@ export async function initiateMembershipPayment(params: {
     data: {
       userId: params.userId,
       phone,
-      amount: MEMBERSHIP_FEE,
+      amount,
       reference,
       status: "pending",
       type: "registration",
     },
   })
 
-  const result = await stkPush(phone, MEMBERSHIP_FEE, reference)
+  const result = await stkPush(phone, amount, reference)
 
   if (!result.success || !result.checkoutRequestId) {
     const error = result.error || "Could not send the M-Pesa prompt"
@@ -87,6 +91,7 @@ export async function initiateMembershipPayment(params: {
     checkoutRequestId: result.checkoutRequestId,
     reference,
     phone,
+    amount,
   }
 }
 

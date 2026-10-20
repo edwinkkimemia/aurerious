@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { usePublicSettings } from "@/hooks/use-public-settings"
 
 // --- Live activity mock ---
 const liveFeed = [
@@ -52,6 +53,8 @@ function Countdown({ onEnd }: { onEnd?: () => void }) {
 
 export default function OfferPage() {
   const router = useRouter()
+  const { membershipFee } = usePublicSettings()
+  const feeLabel = membershipFee.toLocaleString("en-KE")
   const formRef = useRef<HTMLDivElement>(null)
   const [viewers, setViewers] = useState(23)
   const [spots, setSpots] = useState(37)
@@ -120,7 +123,8 @@ export default function OfferPage() {
       router.push(
         `/register/waiting?checkout=${encodeURIComponent(data.checkoutRequestId || "")}` +
           `&phone=${encodeURIComponent(data.phone || phoneClean)}` +
-          `&reference=${encodeURIComponent(data.reference || "")}`
+          `&reference=${encodeURIComponent(data.reference || "")}` +
+          `&amount=${encodeURIComponent(String(data.amount || membershipFee))}`
       )
     } catch {
       setError("Network error. Check connection and try again.")
@@ -190,7 +194,7 @@ export default function OfferPage() {
               </h1>
 
               <p className="mt-4 text-[15px] sm:text-[17px] leading-relaxed text-gray-700 max-w-xl mx-auto lg:mx-0">
-                Pay <strong className="text-[#0F2847]">KES 1,000 once</strong>. Get <span className="bg-[#D4AF37] text-white px-2.5 py-0.5 rounded-full font-bold">KES 500 BACK INSTANTLY</span>. Then earn <strong className="text-[#D4AF37]">KES 350</strong> for every friend who joins + <strong className="text-[#0F2847]">KES 150</strong> when they invite others. Forever.
+                Pay <strong className="text-[#0F2847]">KES {feeLabel} once</strong>. Get <span className="bg-[#D4AF37] text-white px-2.5 py-0.5 rounded-full font-bold">KES 500 BACK INSTANTLY</span>. Then earn <strong className="text-[#D4AF37]">KES 350</strong> for every friend who joins + <strong className="text-[#0F2847]">KES 150</strong> when they invite others. Forever.
               </p>
 
               {/* proof strip */}
@@ -249,7 +253,7 @@ export default function OfferPage() {
                     <div>
                       <p className="inline-flex items-center gap-1.5 bg-[#D4AF37] text-white text-[11px] font-extrabold px-2.5 py-1 rounded-full"><Gift className="h-3 w-3" /> KES 500 BONUS TODAY ONLY</p>
                       <h3 className="font-heading font-bold text-xl mt-2 leading-tight">Claim Your Spot in 30 Seconds</h3>
-                      <p className="text-sm text-white/70 mt-1">Pay KES 1,000 → Get KES 500 back instantly</p>
+                      <p className="text-sm text-white/70 mt-1">Pay KES {feeLabel} → Get KES 500 back instantly</p>
                     </div>
                     <div className="hidden sm:flex h-12 w-12 items-center justify-center rounded-xl bg-white/10 border border-white/10">
                       <Wallet className="h-6 w-6 text-[#F0D060]" />
@@ -331,7 +335,7 @@ export default function OfferPage() {
                   <div className="rounded-xl bg-[#FDF6E3] border border-[#D4AF37]/20 p-3 flex items-start gap-3">
                     <div className="h-8 w-8 rounded-full bg-[#D4AF37] flex items-center justify-center flex-shrink-0 text-white"><Gift className="h-4 w-4" /></div>
                     <div className="text-xs leading-relaxed">
-                      <p className="font-bold text-[#0F2847]">What happens after you pay KES 1,000?</p>
+                      <p className="font-bold text-[#0F2847]">What happens after you pay KES {feeLabel}?</p>
                       <p className="text-gray-600 mt-1">✓ <strong>KES 500</strong> credited instantly • ✓ Referral link activated in 5 sec • ✓ First <strong>KES 350</strong> lands in M-Pesa within minutes of your first invite.</p>
                     </div>
                   </div>
@@ -422,9 +426,9 @@ export default function OfferPage() {
           <div className="mt-10 grid md:grid-cols-3 gap-6 relative">
             <div className="hidden md:block absolute top-[44px] left-[18%] right-[18%] h-0.5 bg-gradient-to-r from-[#D4AF37] via-[#D4AF37]/50 to-[#D4AF37] border-dashed" style={{ backgroundImage: "repeating-linear-gradient(90deg, #D4AF37 0 8px, transparent 8px 16px)" }} />
             {[
-              { n: "01", title: "Pay KES 1,000 Once", desc: "Secure M-Pesa STK Push. Enter your PIN. Takes 20 seconds. Your KES 500 bonus is credited instantly.", icon: Smartphone, color: "bg-[#0F2847]" },
+              { n: "01", title: `Pay KES ${feeLabel} Once`, desc: "Secure M-Pesa STK Push. Enter your PIN. Takes 20 seconds. Your KES 500 bonus is credited instantly.", icon: Smartphone, color: "bg-[#0F2847]" },
               { n: "02", title: "Get Your Link Instantly", desc: "Dashboard opens immediately. Copy your personal link + get done-for-you WhatsApp/TikTok scripts & posters.", icon: Wallet, color: "bg-[#D4AF37]" },
-              { n: "03", title: "Share & Get M-Pesa", desc: "Post on Status, groups, TikTok. Friend pays KES 1,000 → you get KES 350 in 60 seconds. They invite → you get KES 150 more. Forever.", icon: Zap, color: "bg-[#1A3660]" },
+              { n: "03", title: "Share & Get M-Pesa", desc: `Post on Status, groups, TikTok. Friend pays KES ${feeLabel} → you get KES 350 in 60 seconds. They invite → you get KES 150 more. Forever.`, icon: Zap, color: "bg-[#1A3660]" },
             ].map(s => (
               <div key={s.n} className="relative bg-white rounded-2xl border border-gray-100 shadow-sm p-6 text-center hover:shadow-md transition-shadow">
                 <div className={`mx-auto h-14 w-14 rounded-2xl ${s.color} flex items-center justify-center text-white shadow-lg`}>
@@ -608,7 +612,7 @@ export default function OfferPage() {
                 </thead>
                 <tbody className="divide-y divide-gray-100">
                   {[
-                    ["To start", "KES 1,000 once", "KES 5k-50k", "Months of tarmack"],
+                    ["To start", `KES ${feeLabel} once`, "KES 5k-50k", "Months of tarmack"],
                     ["Instant bonus", "KES 500 BACK INSTANTLY", "No", "No"],
                     ["Pay per invite", "KES 350 + 150 passive", "Lose 90%", "KES 0"],
                     ["Payout speed", "60 seconds to M-Pesa", "Never / Delayed", "Month end"],
@@ -636,7 +640,7 @@ export default function OfferPage() {
             <div className="absolute top-0 right-0 w-64 h-64 bg-[#D4AF37]/10 rounded-full blur-3xl" />
             <div className="relative grid lg:grid-cols-2 gap-8 items-center">
               <div>
-                <Badge className="bg-[#D4AF37] text-white border-0">🎁 STACKED VALUE • KES 1,000 ONLY</Badge>
+                <Badge className="bg-[#D4AF37] text-white border-0">🎁 STACKED VALUE • KES {feeLabel} ONLY</Badge>
                 <h3 className="font-heading font-bold text-2xl sm:text-3xl mt-3 leading-tight">Everything You Get Instantly</h3>
                 <ul className="mt-4 space-y-2.5 text-sm">
                   {[
@@ -658,14 +662,14 @@ export default function OfferPage() {
               <div className="bg-white rounded-2xl p-5 text-[#0F2847]">
                 <p className="text-xs font-bold tracking-widest text-gray-500 uppercase">TODAY'S OFFER</p>
                 <div className="mt-2 flex items-baseline gap-2">
-                  <span className="text-3xl font-extrabold">KES 1,000</span>
+                  <span className="text-3xl font-extrabold">KES {feeLabel}</span>
                   <span className="text-sm line-through text-gray-400">KES 2,500</span>
                   <Badge className="bg-red-500 text-white">SAVE 60%</Badge>
                 </div>
                 <p className="text-sm text-gray-600 mt-1">One time. Lifetime access. Includes KES 500 instant cashback.</p>
                 <div className="mt-4 rounded-xl border-2 border-[#D4AF37] bg-[#FDF6E3] p-3 flex items-center justify-between">
                   <span className="font-bold text-sm">You pay</span>
-                  <span className="font-extrabold text-lg">KES 1,000</span>
+                  <span className="font-extrabold text-lg">KES {feeLabel}</span>
                 </div>
                 <div className="mt-2 rounded-xl bg-green-50 border border-green-200 p-3 flex items-center justify-between">
                   <span className="font-bold text-sm text-green-700">You get instantly</span>
@@ -688,11 +692,11 @@ export default function OfferPage() {
           <div className="mt-8 space-y-3">
             {[
               { q: "Is this a pyramid / scam? Will you disappear?", a: "We are Kenyan-owned, Safaricom-verified, with 5,000+ members and KES 2.3M paid with instant M-Pesa. You get KES 500 back instantly – scammers don’t pay you to join. You can withdraw even KES 350 anytime, 24/7. We make money only when you do." },
-              { q: "When do I get the KES 350? Do I wait weeks?", a: "60 seconds. Friend pays KES 1,000 via M-Pesa → our system auto-sends KES 350 to your M-Pesa. No manual approval. No minimum withdrawal. We show M-Pesa codes live above." },
+              { q: "When do I get the KES 350? Do I wait weeks?", a: `60 seconds. Friend pays KES ${feeLabel} via M-Pesa → our system auto-sends KES 350 to your M-Pesa. No manual approval. No minimum withdrawal. We show M-Pesa codes live above.` },
               { q: "What if I have no followers / I’m not popular?", a: "You don’t need 10k followers. 80% of our members get their first 3 joins from family + 2 WhatsApp groups. We give you copy-paste scripts and posters. If you can forward a message, you can earn." },
               { q: "Do I need to sell products or recruit forever?", a: "No product. No stock. No delivery. You share a link. That’s it. And ‘forever’ is the best part – your team’s invites pay you KES 150 even when you’re offline. That’s why it’s passive." },
               { q: "What if I join and fail to get anyone?", a: "You still keep the KES 500 instant bonus. And we give you 30 days of support + scripts. Most who post 2x/day on Status get 2-3 joins in 72 hours. But if you truly get zero, you’ve only risked KES 500 net – less than 2 bundles." },
-              { q: "Is KES 1,000 refundable?", a: "See Refund Policy – but more important: you’re instantly given KES 500 back. Your net risk is KES 500. 3 friends = KES 1,050 profit. After that you are free forever." },
+              { q: `Is KES ${feeLabel} refundable?`, a: "See Refund Policy – but more important: you’re instantly given KES 500 back. Your net risk is KES 500. 3 friends = KES 1,050 profit. After that you are free forever." },
             ].map((f, i) => (
               <details key={i} className="group bg-white rounded-2xl border border-gray-100 shadow-sm open:shadow-md transition-all">
                 <summary className="flex items-center justify-between p-5 cursor-pointer list-none">
@@ -761,7 +765,7 @@ export default function OfferPage() {
             </div>
           </div>
           <p className="mt-4 text-[11px] text-gray-400 leading-relaxed text-center max-w-3xl mx-auto">
-            Disclaimer: Zuri Agency is a referral marketing platform. Earnings depend on your effort in sharing your link. Past earnings (KES 350 per direct + KES 150 team) are not a guarantee of future results. Pay KES 1,000 once, receive KES 500 bonus instantly. 18+ only.
+            Disclaimer: Zuri Agency is a referral marketing platform. Earnings depend on your effort in sharing your link. Past earnings (KES 350 per direct + KES 150 team) are not a guarantee of future results. Pay KES {feeLabel} once, receive KES 500 bonus instantly. 18+ only.
           </p>
         </div>
       </footer>
@@ -792,7 +796,7 @@ export default function OfferPage() {
               <div className="rounded-xl bg-[#FDF6E3] border border-[#D4AF37]/20 p-4 flex items-center gap-3">
                 <Gift className="h-8 w-8 text-[#D4AF37] flex-shrink-0" />
                 <div className="text-sm">
-                  <p className="font-bold text-[#0F2847]">Pay KES 1,000 → Get KES 500 Instantly</p>
+                  <p className="font-bold text-[#0F2847]">Pay KES {feeLabel} → Get KES 500 Instantly</p>
                   <p className="text-gray-600 text-xs">Plus KES 350 per friend. Forever.</p>
                 </div>
               </div>

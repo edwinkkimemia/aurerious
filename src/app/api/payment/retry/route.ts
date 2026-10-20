@@ -57,6 +57,7 @@ export async function POST(request: NextRequest) {
         checkoutRequestId: payment.checkoutRequestId,
         reference: payment.reference,
         phone: payment.phone,
+        amount: payment.amount,
       },
       { status: 201 }
     )

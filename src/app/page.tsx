@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { FadeIn, FadeInScale, AnimatedCounter } from "@/components/landing/shared"
+import { usePublicSettings } from "@/hooks/use-public-settings"
 
 const sections = [
   { icon: BarChart3, title: "How It Works", desc: "Three simple steps to start earning referral income Kenya today. Join, share your link, and earn M-Pesa commissions directly.", href: "/how-it-works", color: "bg-lux-navy" },
@@ -18,6 +19,9 @@ const sections = [
 ]
 
 export default function HomePage() {
+  const { membershipFee } = usePublicSettings()
+  const feeLabel = membershipFee.toLocaleString("en-KE")
+
   return (
     <div className="min-h-screen bg-lux-cream overflow-x-hidden">
       {/* Hero - FIXED OVERFLOW FOR MOBILE */}
@@ -42,13 +46,13 @@ export default function HomePage() {
 
               <FadeIn delay={100}>
                 <h1 className="font-heading font-extrabold text-4xl sm:text-5xl lg:text-6xl leading-tight tracking-tight text-lux-navy">
-                  Invest <span className="text-lux-gold">KES 1,000</span> Once. <span className="text-gradient">Earn KES 350 Forever.</span>
+                  Invest <span className="text-lux-gold">KES {feeLabel}</span> Once. <span className="text-gradient">Earn KES 350 Forever.</span>
                 </h1>
               </FadeIn>
 
               <FadeIn delay={200}>
                 <p className="mt-6 text-base sm:text-lg lg:text-xl text-lux-navy leading-relaxed max-w-xl mx-auto lg:mx-0 font-semibold flex flex-wrap items-center gap-2 justify-center lg:justify-start">
-                  <span>Pay once <span className="text-lux-gold-dark">KES 1,000</span> →</span>
+                  <span>Pay once <span className="text-lux-gold-dark">KES {feeLabel}</span> →</span>
                   <span className="bg-lux-gold text-white px-3 py-1 rounded-full text-xs sm:text-sm whitespace-nowrap">KES 500 Bonus Instantly</span>
                   <span>+ Earn <strong>KES 350</strong> per direct + <strong>KES 150</strong> override forever.</span>
                 </p>
@@ -65,7 +69,7 @@ export default function HomePage() {
                 <div className="mt-8 flex flex-col sm:flex-row gap-4 justify-center lg:justify-start w-full max-w-full">
                   <Link href="/register" className="w-full sm:w-auto">
                     <Button size="lg" className="w-full sm:w-auto bg-lux-cta hover:bg-lux-cta-hover text-white font-heading font-bold text-base sm:text-lg px-6 sm:px-8 h-14 rounded-full shadow-xl shadow-lux-gold/25 transition-all hover:shadow-2xl hover:scale-105 group relative overflow-hidden glow-cta btn-shine">
-                      <span className="relative z-10">Join Now - KES 1,000</span>
+                      <span className="relative z-10">Join Now - KES {feeLabel}</span>
                       <ArrowRight className="ml-2 h-5 w-5 transition-transform group-hover:translate-x-1 relative z-10" />
                       <span className="absolute inset-0 bg-white/10 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700 skew-x-12" />
                     </Button>
@@ -152,7 +156,7 @@ export default function HomePage() {
           <FadeIn className="text-center mb-16">
             <span className="inline-block mb-4 px-4 py-1.5 rounded-full text-sm font-bold bg-gradient-to-r from-lux-gold to-lux-gold-light text-white border-0 shadow-md">Why 5,000+ Kenyans Quit Fake Hustles for Zuri Agency</span>
             <h2 className="font-heading font-bold text-3xl sm:text-4xl lg:text-5xl text-lux-navy heading-underline">We Don’t Just Pay. We <span className="text-lux-gold">Overpay.</span> 50% Back To You.</h2>
-            <p className="mt-6 text-lg text-lux-text-light max-w-3xl mx-auto">One-time <strong className="text-lux-navy">KES 1,000</strong> → <strong className="text-lux-gold-dark">KES 500 bonus instantly</strong> + <strong className="text-lux-gold-dark">KES 350</strong> per direct + <strong className="text-lux-gold-dark">KES 150</strong> override forever. That’s <strong>50% payout</strong> — double the industry. No stock. No boss. No monthly fees.</p>
+            <p className="mt-6 text-lg text-lux-text-light max-w-3xl mx-auto">One-time <strong className="text-lux-navy">KES {feeLabel}</strong> → <strong className="text-lux-gold-dark">KES 500 bonus instantly</strong> + <strong className="text-lux-gold-dark">KES 350</strong> per direct + <strong className="text-lux-gold-dark">KES 150</strong> override forever. That’s <strong>50% payout</strong> — double the industry. No stock. No boss. No monthly fees.</p>
           </FadeIn>
 
           <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-start">
@@ -171,12 +175,12 @@ export default function HomePage() {
               </FadeIn>
               <FadeIn delay={100}>
                 <p className="text-lux-text leading-relaxed text-base lg:text-lg">
-                  Tired of <strong>fake side hustles</strong> that need capital, stock, or 8 hours a day? Zuri Agency was built by Kenyans who were broke and built a system that <strong>actually pays</strong>: share your link on WhatsApp, Telegram, TikTok. When they pay <strong>KES 1,000</strong>, you get <strong className="text-lux-gold-dark">KES 350 instantly</strong>. When they refer, you get <strong className="text-lux-gold-dark">KES 150 more</strong> — forever. No products. No targets. No monthly fees. Just pure 50% payout.
+                  Tired of <strong>fake side hustles</strong> that need capital, stock, or 8 hours a day? Zuri Agency was built by Kenyans who were broke and built a system that <strong>actually pays</strong>: share your link on WhatsApp, Telegram, TikTok. When they pay <strong>KES {feeLabel}</strong>, you get <strong className="text-lux-gold-dark">KES 350 instantly</strong>. When they refer, you get <strong className="text-lux-gold-dark">KES 150 more</strong> — forever. No products. No targets. No monthly fees. Just pure 50% payout.
                 </p>
               </FadeIn>
               <FadeIn delay={200}>
                 <p className="text-lux-text leading-relaxed text-base lg:text-lg">
-                  <strong className="text-lux-navy">Your risk? ZERO.</strong> You pay <strong>KES 1,000 once</strong> and get <strong className="text-lux-gold-dark">KES 500 bonus instantly</strong> — you’re already 50% back. Refer 3 and you’re <strong className="text-green-700">KES 50 profit</strong>. After that, every referral is pure profit. Students, mamas, boda riders, office workers — <strong>5,000+ Kenyans</strong> already turned their phone into an ATM. <strong className="text-lux-gold-dark">Will you?</strong>
+                  <strong className="text-lux-navy">Your risk? ZERO.</strong> You pay <strong>KES {feeLabel} once</strong> and get <strong className="text-lux-gold-dark">KES 500 bonus instantly</strong> — you’re already 50% back. Refer 3 and you’re <strong className="text-green-700">KES 50 profit</strong>. After that, every referral is pure profit. Students, mamas, boda riders, office workers — <strong>5,000+ Kenyans</strong> already turned their phone into an ATM. <strong className="text-lux-gold-dark">Will you?</strong>
                 </p>
               </FadeIn>
             </div>
@@ -189,7 +193,7 @@ export default function HomePage() {
                 </h3>
                 <div className="space-y-4">
                   {[
-                    { icon: Gift, title: "KES 500 Bonus Instantly", desc: "Pay KES 1,000 → get KES 500 back instantly. You’re 50% recovered before you even start!" },
+                    { icon: Gift, title: "KES 500 Bonus Instantly", desc: `Pay KES ${feeLabel} → get KES 500 back instantly. You’re 50% recovered before you even start!` },
                     { icon: Wallet, title: "KES 350 + KES 150 Forever", desc: "50% payout: KES 350 direct + KES 150 override on every team referral — for life. Highest in Kenya." },
                     { icon: Zap, title: "Instant M-Pesa", desc: "No waiting. No thresholds. KES 350 hits your phone in seconds. Withdraw anytime 24/7." },
                     { icon: Users, title: "5,000+ Already Earning", desc: "Join real Kenyans — students, mamas, riders — already cashing out. 2M+ paid, 99.9% success." },
@@ -229,12 +233,12 @@ export default function HomePage() {
               {
                 icon: Gift,
                 title: "KES 500 Bonus On Entry — Instantly",
-                desc: "Others make you wait. We pay you to join. Pay KES 1,000, get KES 500 back instantly. You start with house money. No other platform in Kenya does this. That’s how confident we are you’ll love it.",
+                desc: `Others make you wait. We pay you to join. Pay KES ${feeLabel}, get KES 500 back instantly. You start with house money. No other platform in Kenya does this. That’s how confident we are you’ll love it.`,
               },
               {
                 icon: TrendingUp,
                 title: "50% Payout — Double The Industry",
-                desc: "Most platforms pay 20-30%. We pay 50%: KES 350 direct + KES 150 override. That’s KES 500 of every KES 1,000 back to members. 2M+ already paid. Not promises. Proof.",
+                desc: `Most platforms pay 20-30%. We pay 50%: KES 350 direct + KES 150 override. That’s KES 500 of every KES ${feeLabel} back to members. 2M+ already paid. Not promises. Proof.`,
               },
               {
                 icon: Zap,
@@ -248,7 +252,7 @@ export default function HomePage() {
               },
               {
                 icon: Wallet,
-                title: "KES 1,000 → KES 11,000 With 10 Referrals",
+                title: `KES ${feeLabel} → KES 11,000 With 10 Referrals`,
                 desc: "3 referrals = KES 1,050 profit (you’re free). 10 referrals = KES 3,500 direct + KES 7,500 team = KES 11,000. 20 referrals = KES 22,000+. Show us one job that triples your money in a week.",
               },
               {
@@ -281,7 +285,7 @@ export default function HomePage() {
             <span className="inline-block mb-4 px-4 py-1.5 rounded-full text-sm font-bold bg-gradient-to-r from-lux-gold to-lux-gold-light text-white border-0 shadow-md">Your ROI, Not Hype — Real Math</span>
             <h2 className="font-heading font-bold text-3xl sm:text-4xl lg:text-5xl text-lux-navy heading-underline">See Your Returns Before You Pay</h2>
             <p className="mt-6 text-lg text-lux-navy max-w-3xl mx-auto leading-relaxed font-medium">
-              Pay <strong className="text-lux-gold-dark">KES 1,000 once</strong> → Get <strong className="bg-lux-gold text-white px-2 py-1 rounded-full text-sm">KES 500 Bonus Instantly</strong> + <strong className="text-lux-gold-dark">KES 350</strong> per referral + <strong className="text-lux-gold-dark">KES 150</strong> team override <strong>for life</strong>. No other hustle does this:
+              Pay <strong className="text-lux-gold-dark">KES {feeLabel} once</strong> → Get <strong className="bg-lux-gold text-white px-2 py-1 rounded-full text-sm">KES 500 Bonus Instantly</strong> + <strong className="text-lux-gold-dark">KES 350</strong> per referral + <strong className="text-lux-gold-dark">KES 150</strong> team override <strong>for life</strong>. No other hustle does this:
             </p>
           </FadeIn>
 
@@ -381,7 +385,7 @@ export default function HomePage() {
             {[
               {
                 step: "01",
-                title: "Pay KES 1,000",
+                title: `Pay KES ${feeLabel}`,
                 desc: "Click the Join Now button below and complete your one-time payment via M-Pesa. Your membership is activated instantly and you get immediate access to your personal dashboard and referral link.",
                 color: "bg-lux-navy",
               },
@@ -476,7 +480,7 @@ export default function HomePage() {
               Ready to Start Earning Real Referral Income?
             </h2>
             <p className="mt-6 text-lg sm:text-xl text-gray-300 max-w-3xl mx-auto leading-relaxed">
-              Every day you wait is another day of potential M-Pesa commissions you are leaving on the table. Thousands of Kenyans have already joined and are earning consistent money from their networks. Your KES 1,000 investment is the only barrier between you and a lifetime of referral income Kenya opportunities.
+              Every day you wait is another day of potential M-Pesa commissions you are leaving on the table. Thousands of Kenyans have already joined and are earning consistent money from their networks. Your KES {feeLabel} investment is the only barrier between you and a lifetime of referral income Kenya opportunities.
             </p>
             <div className="mt-8 flex flex-wrap items-center justify-center gap-4 text-sm text-gray-400">
               <span className="flex items-center gap-1.5"><CheckCircle className="h-4 w-4 text-lux-gold" /> No monthly fees</span>
@@ -489,7 +493,7 @@ export default function HomePage() {
             <div className="mt-10 flex flex-col sm:flex-row gap-4 justify-center">
               <Link href="/register">
                 <Button size="lg" className="bg-lux-cta hover:bg-lux-cta-hover text-white font-heading font-bold text-lg px-10 h-16 rounded-full shadow-2xl shadow-lux-gold/30 transition-all hover:shadow-lux-gold/40 hover:scale-105 group relative overflow-hidden glow-cta btn-shine">
-                  <span className="relative z-10">Join Now - KES 1,000</span>
+                  <span className="relative z-10">Join Now - KES {feeLabel}</span>
                   <ArrowRight className="ml-2 h-5 w-5 transition-transform group-hover:translate-x-1 relative z-10" />
                   <span className="absolute inset-0 bg-white/10 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700 skew-x-12" />
                 </Button>
