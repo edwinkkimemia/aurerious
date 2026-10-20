@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { MpesaTillNote } from "@/components/mpesa-till-note"
 import { signIn, getSession } from "next-auth/react"
 import { usePublicSettings } from "@/hooks/use-public-settings"
 
@@ -154,7 +155,7 @@ export default function LoginPage() {
 
   if (paymentState === "polling") {
     return (
-      <div className="min-h-screen bg-lux-cream flex flex-col items-center justify-center p-4 relative overflow-hidden">
+      <div className="min-h-[calc(100svh-34px)] sm:min-h-[calc(100svh-38px)] bg-lux-cream flex flex-col items-center justify-center p-4 relative overflow-hidden">
         <div className="absolute inset-0 pointer-events-none">
           <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-lux-gold/5 rounded-full blur-3xl" />
           <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-lux-navy/5 rounded-full blur-3xl" />
@@ -169,6 +170,7 @@ export default function LoginPage() {
             <CardDescription className="text-lux-text-light text-base leading-relaxed">
               Enter your M-Pesa PIN on your phone to complete the KES {feeLabel} membership payment.
             </CardDescription>
+            <MpesaTillNote className="mt-3 text-lux-text-light" />
 
             <div className="mt-8 space-y-4">
               <div className="flex items-center gap-3 rounded-xl bg-lux-gold-pale/60 border border-lux-gold/10 px-4 py-3">
@@ -185,7 +187,7 @@ export default function LoginPage() {
 
   if (paymentState === "success") {
     return (
-      <div className="min-h-screen bg-lux-cream flex flex-col items-center justify-center p-4 relative overflow-hidden">
+      <div className="min-h-[calc(100svh-34px)] sm:min-h-[calc(100svh-38px)] bg-lux-cream flex flex-col items-center justify-center p-4 relative overflow-hidden">
         <div className="absolute inset-0 pointer-events-none">
           <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-lux-gold/5 rounded-full blur-3xl" />
           <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-lux-navy/5 rounded-full blur-3xl" />
@@ -207,20 +209,20 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-lux-cream flex flex-col items-center justify-center p-4 relative overflow-hidden">
+    <div className="min-h-[calc(100svh-34px)] sm:min-h-[calc(100svh-38px)] bg-lux-cream flex flex-col items-center justify-center p-4 relative overflow-hidden">
       <div className="absolute inset-0 pointer-events-none">
         <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-lux-navy/5 rounded-full blur-3xl" />
         <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-lux-gold/10 rounded-full blur-3xl" />
       </div>
 
-      <div className="flex items-center gap-3 mb-8">
+      <Link href="/" className="flex items-center gap-3 mb-8">
         <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-lux-navy shadow-lg shadow-lux-navy/20">
           <span className="font-heading font-bold text-white text-xl">A</span>
         </div>
         <span className="font-heading font-bold text-2xl text-lux-navy">
           Zuri<span className="text-lux-gold">Agency</span>
         </span>
-      </div>
+      </Link>
 
       <Card className="w-full max-w-md border-lux-gold/20 shadow-2xl glass card-lift">
         <CardHeader className="text-center pb-2">
@@ -297,6 +299,7 @@ export default function LoginPage() {
                 )}
                 {paymentState === "initiating" ? "Sending M-Pesa Prompt..." : `Pay KES ${feeLabel} via M-Pesa`}
               </Button>
+              <MpesaTillNote className="text-center text-lux-text-light" />
             </div>
           )}
 

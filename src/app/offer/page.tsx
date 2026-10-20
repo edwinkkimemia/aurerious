@@ -13,7 +13,9 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { MpesaTillNote } from "@/components/mpesa-till-note"
 import { usePublicSettings } from "@/hooks/use-public-settings"
+import { rememberPendingSignup } from "@/lib/pending-signup"
 
 // --- Live activity mock ---
 const liveFeed = [
@@ -120,6 +122,7 @@ export default function OfferPage() {
       })
       const data = await res.json()
       if (!res.ok) { setError(data.error || "Something went wrong. Try again."); return }
+      rememberPendingSignup(form.email, form.password)
       router.push(
         `/register/waiting?checkout=${encodeURIComponent(data.checkoutRequestId || "")}` +
           `&phone=${encodeURIComponent(data.phone || phoneClean)}` +
@@ -331,6 +334,7 @@ export default function OfferPage() {
                     <span>•</span>
                     <span>M-Pesa • Safaricom</span>
                   </div>
+                  <MpesaTillNote className="text-center text-gray-500" />
 
                   <div className="rounded-xl bg-[#FDF6E3] border border-[#D4AF37]/20 p-3 flex items-start gap-3">
                     <div className="h-8 w-8 rounded-full bg-[#D4AF37] flex items-center justify-center flex-shrink-0 text-white"><Gift className="h-4 w-4" /></div>

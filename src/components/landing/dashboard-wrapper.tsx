@@ -9,7 +9,7 @@ export function DashboardWrapper({ children }: { children: React.ReactNode }) {
 
   if (isLandingPage) return <>{children}</>
   const isAuth = pathname.startsWith("/login") || pathname.startsWith("/register")
-  if (isAuth) return <div className="pt-16">{children}</div>
+  if (isAuth) return <div className="pt-[34px] sm:pt-[38px]">{children}</div>
 
   return (
     <div className={isDashboard ? "" : "pt-[98px] sm:pt-[102px]"}>

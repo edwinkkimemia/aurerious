@@ -8,7 +8,9 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { MpesaTillNote } from "@/components/mpesa-till-note"
 import { usePublicSettings } from "@/hooks/use-public-settings"
+import { rememberPendingSignup } from "@/lib/pending-signup"
 
 function RegisterForm() {
   const router = useRouter()
@@ -85,17 +87,7 @@ function RegisterForm() {
 
       // Keep the sign-in details for this tab only so the waiting page can
       // create the session automatically once the payment completes.
-      try {
-        sessionStorage.setItem(
-          "zuri_pending_signup",
-          JSON.stringify({
-            login: form.email.trim().toLowerCase(),
-            password: form.password,
-          })
-        )
-      } catch {
-        // sessionStorage can be unavailable in strict privacy modes.
-      }
+      rememberPendingSignup(form.email, form.password)
 
       router.push(
         `/register/waiting?checkout=${encodeURIComponent(data.checkoutRequestId || "")}` +
@@ -111,20 +103,20 @@ function RegisterForm() {
   }
 
   return (
-    <div className="min-h-screen bg-lux-cream flex flex-col items-center justify-center p-4 relative overflow-hidden">
+    <div className="min-h-[calc(100svh-34px)] sm:min-h-[calc(100svh-38px)] bg-lux-cream flex flex-col items-center justify-center p-4 relative overflow-hidden">
       <div className="absolute inset-0 pointer-events-none">
         <div className="absolute top-0 left-0 w-[500px] h-[500px] bg-lux-navy/5 rounded-full blur-3xl" />
         <div className="absolute bottom-0 right-0 w-[400px] h-[400px] bg-lux-gold/10 rounded-full blur-3xl" />
       </div>
 
-      <div className="flex items-center gap-3 mb-8">
+      <Link href="/" className="flex items-center gap-3 mb-8">
         <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-lux-navy shadow-lg shadow-lux-navy/20">
           <span className="font-heading font-bold text-white text-xl">A</span>
         </div>
         <span className="font-heading font-bold text-2xl text-lux-navy">
           Zuri<span className="text-lux-gold">Agency</span>
         </span>
-      </div>
+      </Link>
 
       <Card className="w-full max-w-lg border-lux-gold/20 shadow-2xl glass card-lift">
         <CardHeader className="text-center pb-2">
@@ -201,6 +193,7 @@ function RegisterForm() {
                   <p className="text-sm text-lux-text-light mt-1">
                     Pay <strong className="text-lux-navy">KES {feeLabel}</strong> via M-Pesa STK Push to activate your account and start earning. Get <strong className="text-lux-gold">KES 500 airtime bonus</strong> instantly.
                   </p>
+                  <MpesaTillNote className="mt-2 text-lux-text-light" />
                 </div>
               </div>
             </div>
@@ -226,7 +219,7 @@ function RegisterForm() {
 export default function RegisterPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen bg-lux-cream flex items-center justify-center">
+      <div className="min-h-[calc(100svh-34px)] sm:min-h-[calc(100svh-38px)] bg-lux-cream flex items-center justify-center">
         <div className="text-lux-navy font-heading">Loading...</div>
       </div>
     }>

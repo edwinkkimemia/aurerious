@@ -7,7 +7,9 @@ import { signIn, getSession } from "next-auth/react"
 import { AlertCircle, ArrowLeft, CheckCircle2, Loader2, Smartphone } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardTitle } from "@/components/ui/card"
+import { MpesaTillNote } from "@/components/mpesa-till-note"
 import { usePublicSettings } from "@/hooks/use-public-settings"
+import { clearPendingSignup, takePendingSignup } from "@/lib/pending-signup"
 
 type PaymentState = "waiting" | "success" | "failed" | "missing"
 
@@ -52,31 +54,24 @@ function WaitingContent() {
           // Sign the newly activated member in automatically. The registration
           // page stores these credentials for the current tab only.
           try {
-            const pending = sessionStorage.getItem("zuri_pending_signup")
+            const pending = takePendingSignup()
+
             if (pending) {
-              const { login, password } = JSON.parse(pending) as {
-                login?: string
-                password?: string
-              }
-              sessionStorage.removeItem("zuri_pending_signup")
+              const result = await signIn("credentials", {
+                login: pending.login,
+                password: pending.password,
+                redirect: false,
+              })
 
-              if (login && password) {
-                const result = await signIn("credentials", {
-                  login,
-                  password,
-                  redirect: false,
-                })
-
-                if (result?.ok) {
-                  const session = await getSession()
-                  if (session?.user?.role === "admin") {
-                    router.push("/admin")
-                  } else {
-                    router.push("/dashboard")
-                  }
-                  router.refresh()
-                  return
+              if (result?.ok) {
+                const session = await getSession()
+                if (session?.user?.role === "admin") {
+                  router.push("/admin")
+                } else {
+                  router.push("/dashboard")
                 }
+                router.refresh()
+                return
               }
             }
           } catch {
@@ -88,11 +83,7 @@ function WaitingContent() {
           }, 1800)
         } else if (data.status === "failed") {
           if (pollRef.current) clearInterval(pollRef.current)
-          try {
-            sessionStorage.removeItem("zuri_pending_signup")
-          } catch {
-            // Ignore unavailable storage.
-          }
+          clearPendingSignup()
           setState("failed")
           setMessage(data.resultDesc || "The M-Pesa payment was not completed.")
         } else {
@@ -113,7 +104,7 @@ function WaitingContent() {
   }, [checkoutRequestId, router])
 
   return (
-    <div className="min-h-screen bg-lux-cream flex flex-col items-center justify-center p-4 relative overflow-hidden">
+    <div className="min-h-[calc(100svh-34px)] sm:min-h-[calc(100svh-38px)] bg-lux-cream flex flex-col items-center justify-center p-4 relative overflow-hidden">
       <div className="absolute inset-0 pointer-events-none">
         <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-lux-gold/5 rounded-full blur-3xl" />
         <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-lux-navy/5 rounded-full blur-3xl" />
@@ -148,6 +139,8 @@ function WaitingContent() {
                 {phone ? <> has been sent to <strong className="text-lux-navy">{phone}</strong></> : " has been sent to your phone"}.
                 Enter your M-Pesa PIN to activate your account.
               </CardDescription>
+
+              <MpesaTillNote className="mt-3 text-lux-text-light" />
 
               <div className="mt-8 flex items-center justify-center gap-3 rounded-xl bg-lux-gold-pale/60 border border-lux-gold/10 px-4 py-3">
                 <Loader2 className="h-5 w-5 text-lux-gold animate-spin flex-shrink-0" />
@@ -211,7 +204,7 @@ export default function WaitingPage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen bg-lux-cream flex items-center justify-center">
+        <div className="min-h-[calc(100svh-34px)] sm:min-h-[calc(100svh-38px)] bg-lux-cream flex items-center justify-center">
           <Loader2 className="h-6 w-6 text-lux-gold animate-spin" />
         </div>
       }

@@ -39,9 +39,8 @@ export function PromoTopBar() {
 
   const isDashboard = pathname.startsWith("/dashboard") || pathname.startsWith("/admin")
   const isLandingPage = pathname.startsWith("/offer") || pathname.startsWith("/go") || pathname.startsWith("/lp")
-  const isAuth = pathname.startsWith("/login") || pathname.startsWith("/register")
 
-  if (isDashboard || isLandingPage || isAuth) return null
+  if (isDashboard || isLandingPage) return null
 
   const offerHref = ref ? `/offer?ref=${encodeURIComponent(ref)}` : "/offer"
 
