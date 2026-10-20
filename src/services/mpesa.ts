@@ -1,13 +1,28 @@
-const CONSUMER_KEY = process.env.MPESA_CONSUMER_KEY || ""
-const CONSUMER_SECRET = process.env.MPESA_CONSUMER_SECRET || ""
-const PASSKEY = process.env.MPESA_PASSKEY || ""
-const BUSINESS_SHORTCODE = process.env.MPESA_BUSINESS_SHORTCODE || ""
-const CALLBACK_URL = process.env.MPESA_CALLBACK_URL || ""
-const ENVIRONMENT = process.env.MPESA_ENVIRONMENT || "sandbox"
+function env(name: string, fallback = ""): string {
+  return (process.env[name] || fallback).trim().replace(/^["']|["']$/g, "")
+}
+
+const CONSUMER_KEY = env("MPESA_CONSUMER_KEY")
+const CONSUMER_SECRET = env("MPESA_CONSUMER_SECRET")
+const PASSKEY = env("MPESA_PASSKEY")
+const BUSINESS_SHORTCODE = env("MPESA_BUSINESS_SHORTCODE")
+const CALLBACK_URL = env("MPESA_CALLBACK_URL")
+const ENVIRONMENT = env("MPESA_ENVIRONMENT", "sandbox").toLowerCase()
+const SHORTCODE_TYPE = env("MPESA_SHORTCODE_TYPE", "paybill").toLowerCase()
 
 const BASE_URL = ENVIRONMENT === "production"
   ? "https://api.safaricom.co.ke"
   : "https://sandbox.safaricom.co.ke"
+
+/**
+ * Paybill and Buy Goods (Till) STK requests use different transaction types.
+ * Using Paybill against a Till shortcode returns Safaricom result code 2029.
+ */
+function getTransactionType(): "CustomerPayBillOnline" | "CustomerBuyGoodsOnline" {
+  return SHORTCODE_TYPE === "till" || SHORTCODE_TYPE === "buygoods"
+    ? "CustomerBuyGoodsOnline"
+    : "CustomerPayBillOnline"
+}
 
 function hasPlaceholder(value: string): boolean {
   return /yourdomain|example\.com|your-|xxx/i.test(value)
@@ -26,7 +41,7 @@ function isConfigured(): boolean {
 
 // Mock mode is opt-in and only allowed outside production builds.
 function isMockMode(): boolean {
-  return process.env.MPESA_MOCK === "true" && process.env.NODE_ENV !== "production"
+  return env("MPESA_MOCK").toLowerCase() === "true" && process.env.NODE_ENV !== "production"
 }
 
 /**
@@ -140,7 +155,7 @@ export async function stkPush(
       BusinessShortCode: BUSINESS_SHORTCODE,
       Password: password,
       Timestamp: timestamp,
-      TransactionType: "CustomerPayBillOnline",
+      TransactionType: getTransactionType(),
       Amount: Math.round(amount),
       PartyA: partyA,
       PartyB: BUSINESS_SHORTCODE,
@@ -149,6 +164,14 @@ export async function stkPush(
       AccountReference: accountRef.slice(0, 12),
       TransactionDesc: `Payment of KES ${Math.round(amount)}`,
     }
+
+    console.log("[M-Pesa] Sending STK push", {
+      environment: ENVIRONMENT,
+      transactionType: getTransactionType(),
+      shortcode: `${BUSINESS_SHORTCODE.slice(0, 3)}***`,
+      amount: Math.round(amount),
+      accountRef,
+    })
 
     const res = await fetch(`${BASE_URL}/mpesa/stkpush/v1/processrequest`, {
       method: "POST",
