@@ -298,11 +298,19 @@ export async function queryStatus(
     }
 
     const resultCode = String(data.ResultCode)
-    return {
-      status: resultCode === "0" ? "success" : "failed",
-      resultCode,
-      resultDesc: (data.ResultDesc as string) || (data.errorMessage as string),
+    const resultDesc = (data.ResultDesc as string) || (data.errorMessage as string)
+
+    if (resultCode === "0") {
+      return { status: "success", resultCode, resultDesc }
     }
+
+    // Safaricom returns 4999 while the customer is still entering their PIN.
+    // This is not a failure and must not stop the waiting page polling.
+    if (resultCode === "4999") {
+      return { status: "pending", resultCode, resultDesc }
+    }
+
+    return { status: "failed", resultCode, resultDesc }
   } catch (error) {
     console.error("[M-Pesa] Query status exception", error)
     return { status: "pending", error: "Could not check payment status" }

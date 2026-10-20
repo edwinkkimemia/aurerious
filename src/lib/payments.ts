@@ -192,7 +192,12 @@ export async function failMpesaPayment(params: {
   resultDesc?: string
 }): Promise<void> {
   await db.mpesaTransaction.updateMany({
-    where: { checkoutRequestId: params.checkoutRequestId, status: "pending" },
+    where: {
+      checkoutRequestId: params.checkoutRequestId,
+      // 4999 is a temporary "still processing" result. Allow a later terminal
+      // result to replace it, but never overwrite a completed transaction.
+      OR: [{ status: "pending" }, { status: "failed", resultCode: "4999" }],
+    },
     data: {
       status: "failed",
       resultCode: params.resultCode || "1",

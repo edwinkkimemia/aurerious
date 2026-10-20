@@ -28,7 +28,9 @@ export async function GET(request: NextRequest) {
       })
     }
 
-    if (attempt.status === "failed") {
+    // A 4999 result only means Safaricom was still processing when we last
+    // checked. Re-query it so a completed payment can still be recovered.
+    if (attempt.status === "failed" && attempt.resultCode !== "4999") {
       return NextResponse.json({
         status: "failed",
         reference: attempt.reference,
