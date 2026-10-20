@@ -1,0 +1,10 @@
+# Never upload local secrets or runtime logs to Vercel
+.env
+.env.*
+!.env.example
+*.log
+
+# Dependencies and build output
+node_modules
+.next
+.vercel
