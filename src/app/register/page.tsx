@@ -82,6 +82,21 @@ function RegisterForm() {
         setError(data.error || "Registration failed")
         return
       }
+
+      // Keep the sign-in details for this tab only so the waiting page can
+      // create the session automatically once the payment completes.
+      try {
+        sessionStorage.setItem(
+          "zuri_pending_signup",
+          JSON.stringify({
+            login: form.email.trim().toLowerCase(),
+            password: form.password,
+          })
+        )
+      } catch {
+        // sessionStorage can be unavailable in strict privacy modes.
+      }
+
       router.push(
         `/register/waiting?checkout=${encodeURIComponent(data.checkoutRequestId || "")}` +
           `&phone=${encodeURIComponent(data.phone || phoneClean)}` +

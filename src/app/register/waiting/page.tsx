@@ -3,6 +3,7 @@
 import { Suspense, useEffect, useRef, useState } from "react"
 import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
+import { signIn, getSession } from "next-auth/react"
 import { AlertCircle, ArrowLeft, CheckCircle2, Loader2, Smartphone } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardTitle } from "@/components/ui/card"
@@ -25,6 +26,7 @@ function WaitingContent() {
   const [message, setMessage] = useState("")
   const [attempts, setAttempts] = useState(0)
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const finishingRef = useRef(false)
 
   useEffect(() => {
     if (!checkoutRequestId) return
@@ -43,10 +45,54 @@ function WaitingContent() {
 
         if (data.status === "completed") {
           if (pollRef.current) clearInterval(pollRef.current)
+          if (finishingRef.current) return
+          finishingRef.current = true
           setState("success")
-          setTimeout(() => router.push("/login?verified=true"), 2500)
+
+          // Sign the newly activated member in automatically. The registration
+          // page stores these credentials for the current tab only.
+          try {
+            const pending = sessionStorage.getItem("zuri_pending_signup")
+            if (pending) {
+              const { login, password } = JSON.parse(pending) as {
+                login?: string
+                password?: string
+              }
+              sessionStorage.removeItem("zuri_pending_signup")
+
+              if (login && password) {
+                const result = await signIn("credentials", {
+                  login,
+                  password,
+                  redirect: false,
+                })
+
+                if (result?.ok) {
+                  const session = await getSession()
+                  if (session?.user?.role === "admin") {
+                    router.push("/admin")
+                  } else {
+                    router.push("/dashboard")
+                  }
+                  router.refresh()
+                  return
+                }
+              }
+            }
+          } catch {
+            // Fall through to the sign-in page if auto-login is unavailable.
+          }
+
+          setTimeout(() => {
+            if (!cancelled) router.push("/login?verified=true")
+          }, 1800)
         } else if (data.status === "failed") {
           if (pollRef.current) clearInterval(pollRef.current)
+          try {
+            sessionStorage.removeItem("zuri_pending_signup")
+          } catch {
+            // Ignore unavailable storage.
+          }
           setState("failed")
           setMessage(data.resultDesc || "The M-Pesa payment was not completed.")
         } else {
@@ -84,7 +130,7 @@ function WaitingContent() {
                 Payment Received!
               </CardTitle>
               <CardDescription className="text-lux-text-light text-base leading-relaxed">
-                Your account is now active. Redirecting you to sign in...
+                Your account is now active. Taking you to your dashboard...
               </CardDescription>
             </>
           )}
