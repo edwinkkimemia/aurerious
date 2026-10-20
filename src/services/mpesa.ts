@@ -1,26 +1,60 @@
 const CONSUMER_KEY = process.env.MPESA_CONSUMER_KEY || ""
 const CONSUMER_SECRET = process.env.MPESA_CONSUMER_SECRET || ""
 const PASSKEY = process.env.MPESA_PASSKEY || ""
-const BUSINESS_SHORTCODE = process.env.MPESA_BUSINESS_SHORTCODE || "174379"
-const CALLBACK_URL = process.env.MPESA_CALLBACK_URL || "https://example.com/api/mpesa/callback"
+const BUSINESS_SHORTCODE = process.env.MPESA_BUSINESS_SHORTCODE || ""
+const CALLBACK_URL = process.env.MPESA_CALLBACK_URL || ""
 const ENVIRONMENT = process.env.MPESA_ENVIRONMENT || "sandbox"
 
 const BASE_URL = ENVIRONMENT === "production"
   ? "https://api.safaricom.co.ke"
   : "https://sandbox.safaricom.co.ke"
 
-function isConfigured(): boolean {
-  return !!(CONSUMER_KEY && CONSUMER_SECRET && PASSKEY)
+function hasPlaceholder(value: string): boolean {
+  return /yourdomain|example\.com|your-|xxx/i.test(value)
 }
 
+function isConfigured(): boolean {
+  return !!(
+    CONSUMER_KEY &&
+    CONSUMER_SECRET &&
+    PASSKEY &&
+    BUSINESS_SHORTCODE &&
+    CALLBACK_URL &&
+    !hasPlaceholder(CALLBACK_URL)
+  )
+}
+
+// Mock mode is opt-in and only allowed outside production builds.
+function isMockMode(): boolean {
+  return process.env.MPESA_MOCK === "true" && process.env.NODE_ENV !== "production"
+}
+
+/**
+ * Safaricom expects MSISDN in 2547XXXXXXXX / 2541XXXXXXXX format.
+ */
+export function normalizePhone(phone: string): string {
+  const digits = phone.replace(/\D/g, "")
+  if (digits.startsWith("254")) return digits
+  if (digits.startsWith("0")) return `254${digits.slice(1)}`
+  if (digits.startsWith("7") || digits.startsWith("1")) return `254${digits}`
+  return digits
+}
+
+export function isValidKenyanPhone(phone: string): boolean {
+  return /^254[17]\d{8}$/.test(normalizePhone(phone))
+}
+
+/**
+ * Safaricom timestamps must be in East Africa Time (UTC+3).
+ */
 function getTimestamp(): string {
-  const now = new Date()
-  const year = now.getFullYear()
-  const month = String(now.getMonth() + 1).padStart(2, "0")
-  const day = String(now.getDate()).padStart(2, "0")
-  const hours = String(now.getHours()).padStart(2, "0")
-  const minutes = String(now.getMinutes()).padStart(2, "0")
-  const seconds = String(now.getSeconds()).padStart(2, "0")
+  const now = new Date(Date.now() + 3 * 60 * 60 * 1000)
+  const year = now.getUTCFullYear()
+  const month = String(now.getUTCMonth() + 1).padStart(2, "0")
+  const day = String(now.getUTCDate()).padStart(2, "0")
+  const hours = String(now.getUTCHours()).padStart(2, "0")
+  const minutes = String(now.getUTCMinutes()).padStart(2, "0")
+  const seconds = String(now.getUTCSeconds()).padStart(2, "0")
   return `${year}${month}${day}${hours}${minutes}${seconds}`
 }
 
@@ -29,12 +63,7 @@ function getPassword(timestamp: string): string {
   return Buffer.from(raw).toString("base64")
 }
 
-export async function getAccessToken(): Promise<string> {
-  if (!isConfigured()) {
-    console.log("[M-Pesa] Using mock access token (credentials not configured)")
-    return "mock-access-token-simulated"
-  }
-
+async function getAccessToken(): Promise<string | null> {
   try {
     const url = `${BASE_URL}/oauth/v1/generate?grant_type=client_credentials`
     const auth = Buffer.from(`${CONSUMER_KEY}:${CONSUMER_SECRET}`).toString("base64")
@@ -42,23 +71,24 @@ export async function getAccessToken(): Promise<string> {
     const res = await fetch(url, {
       method: "GET",
       headers: { Authorization: `Basic ${auth}` },
+      cache: "no-store",
     })
 
     if (!res.ok) {
       const text = await res.text().catch(() => "")
-      console.warn(`[M-Pesa] getAccessToken failed ${res.status} ${res.statusText} ${text} - falling back to mock`)
-      return "mock-access-token-simulated"
+      console.error(`[M-Pesa] OAuth failed ${res.status} ${res.statusText} ${text}`)
+      return null
     }
 
     const data = await res.json()
     if (!data.access_token) {
-      console.warn("[M-Pesa] No access_token in response, using mock", data)
-      return "mock-access-token-simulated"
+      console.error("[M-Pesa] OAuth response missing access_token")
+      return null
     }
     return data.access_token
-  } catch (e) {
-    console.warn("[M-Pesa] getAccessToken exception, using mock", e)
-    return "mock-access-token-simulated"
+  } catch (error) {
+    console.error("[M-Pesa] OAuth exception", error)
+    return null
   }
 }
 
@@ -69,94 +99,120 @@ export async function stkPush(
 ): Promise<{
   success: boolean
   checkoutRequestId?: string
+  merchantRequestId?: string
   responseDescription?: string
   error?: string
 }> {
-  if (!isConfigured()) {
-    console.log("[M-Pesa] Mock STK Push:", { phone, amount, accountRef })
-    const checkoutRequestId = `wsr_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`
+  const partyA = normalizePhone(phone)
+
+  if (!isValidKenyanPhone(partyA)) {
+    return { success: false, error: "Enter a valid Kenyan M-Pesa number (07XX or 01XX)" }
+  }
+
+  if (!Number.isFinite(amount) || amount <= 0) {
+    return { success: false, error: "Invalid payment amount" }
+  }
+
+  if (isMockMode()) {
+    console.log("[M-Pesa] Mock STK Push:", { phone: partyA, amount, accountRef })
     return {
       success: true,
-      checkoutRequestId,
-      responseDescription: "Success. Request accepted for processing",
+      checkoutRequestId: `wsr_mock_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+      merchantRequestId: `mock_${Date.now()}`,
+      responseDescription: "Mock STK push accepted",
     }
   }
 
-  const timestamp = getTimestamp()
-  const password = getPassword(timestamp)
-
-  const body = {
-    BusinessShortCode: BUSINESS_SHORTCODE,
-    Password: password,
-    Timestamp: timestamp,
-    TransactionType: "CustomerPayBillOnline",
-    Amount: Math.round(amount),
-    PartyA: phone,
-    PartyB: BUSINESS_SHORTCODE,
-    PhoneNumber: phone,
-    CallBackURL: CALLBACK_URL,
-    AccountReference: accountRef,
-    TransactionDesc: `Payment of KES ${amount}`,
+  if (!isConfigured()) {
+    console.error("[M-Pesa] STK push requested but credentials are not configured")
+    return { success: false, error: "M-Pesa payments are not configured. Please contact support." }
   }
 
   try {
+    const timestamp = getTimestamp()
+    const password = getPassword(timestamp)
     const token = await getAccessToken()
-    // If we got mock token, directly return mock success to avoid real call with mock token
-    if (token === "mock-access-token-simulated") {
-      console.log("[M-Pesa] Mock STK Push (fallback after token failure):", { phone, amount, accountRef })
-      const checkoutRequestId = `wsr_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`
-      return { success: true, checkoutRequestId, responseDescription: "Success. Request accepted for processing" }
+    if (!token) {
+      return { success: false, error: "Could not authenticate with M-Pesa. Please try again." }
     }
-    const url = `${BASE_URL}/mpesa/stkpush/v1/processrequest`
 
-    const res = await fetch(url, {
+    const body = {
+      BusinessShortCode: BUSINESS_SHORTCODE,
+      Password: password,
+      Timestamp: timestamp,
+      TransactionType: "CustomerPayBillOnline",
+      Amount: Math.round(amount),
+      PartyA: partyA,
+      PartyB: BUSINESS_SHORTCODE,
+      PhoneNumber: partyA,
+      CallBackURL: CALLBACK_URL,
+      AccountReference: accountRef.slice(0, 12),
+      TransactionDesc: `Payment of KES ${Math.round(amount)}`,
+    }
+
+    const res = await fetch(`${BASE_URL}/mpesa/stkpush/v1/processrequest`, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${token}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify(body),
+      cache: "no-store",
     })
 
-    const data = await res.json()
+    const data = await res.json().catch(() => ({} as Record<string, unknown>))
 
-    if (data.ResponseCode === "0") {
+    if (!res.ok || data.ResponseCode !== "0") {
+      console.error("[M-Pesa] STK push failed", data)
       return {
-        success: true,
-        checkoutRequestId: data.CheckoutRequestID,
-        responseDescription: data.ResponseDescription || "Success",
+        success: false,
+        error:
+          (data.errorMessage as string) ||
+          (data.ResponseDescription as string) ||
+          "M-Pesa rejected the payment request",
       }
     }
 
-    console.warn("[M-Pesa] stkPush failed, falling back to mock", data)
-    const checkoutRequestId = `wsr_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`
-    return { success: true, checkoutRequestId, responseDescription: "Success. Request accepted for processing (mock fallback)" }
-  } catch (e) {
-    console.warn("[M-Pesa] stkPush exception, using mock", e)
-    const checkoutRequestId = `wsr_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`
-    return { success: true, checkoutRequestId, responseDescription: "Success. Request accepted for processing (mock fallback)" }
+    return {
+      success: true,
+      checkoutRequestId: data.CheckoutRequestID as string,
+      merchantRequestId: data.MerchantRequestID as string,
+      responseDescription: (data.CustomerMessage as string) || "STK push sent",
+    }
+  } catch (error) {
+    console.error("[M-Pesa] STK push exception", error)
+    return { success: false, error: "Could not reach M-Pesa. Please try again." }
   }
 }
 
 export async function queryStatus(
   checkoutRequestId: string
 ): Promise<{
-  success: boolean
+  status: "success" | "pending" | "failed"
   resultCode?: string
   resultDesc?: string
+  error?: string
 }> {
-  if (!isConfigured()) {
+  if (isMockMode()) {
     console.log("[M-Pesa] Mock query status:", { checkoutRequestId })
     return {
-      success: true,
+      status: "success",
       resultCode: "0",
       resultDesc: "The service request is processed successfully.",
     }
   }
 
+  if (!isConfigured()) {
+    return { status: "pending", error: "M-Pesa is not configured" }
+  }
+
   try {
     const timestamp = getTimestamp()
     const password = getPassword(timestamp)
+    const token = await getAccessToken()
+    if (!token) {
+      return { status: "pending", error: "Could not authenticate with M-Pesa" }
+    }
 
     const body = {
       BusinessShortCode: BUSINESS_SHORTCODE,
@@ -165,36 +221,40 @@ export async function queryStatus(
       CheckoutRequestID: checkoutRequestId,
     }
 
-    const token = await getAccessToken()
-    if (token === "mock-access-token-simulated") {
-      console.log("[M-Pesa] Mock query status (fallback):", { checkoutRequestId })
-      return { success: true, resultCode: "0", resultDesc: "The service request is processed successfully." }
-    }
-    const url = `${BASE_URL}/mpesa/stkpushquery/v1/query`
-
-    const res = await fetch(url, {
+    const res = await fetch(`${BASE_URL}/mpesa/stkpushquery/v1/query`, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${token}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify(body),
+      cache: "no-store",
     })
 
-    const data = await res.json()
+    const data = await res.json().catch(() => ({} as Record<string, unknown>))
 
-    return {
-      success: data.ResultCode === "0",
-      resultCode: data.ResultCode,
-      resultDesc: data.ResultDesc || data.errorMessage,
+    // While the customer is still entering their PIN, Daraja returns an
+    // errorCode/errorMessage instead of a ResultCode.
+    if (data.ResultCode === undefined || data.ResultCode === null) {
+      return {
+        status: "pending",
+        error: (data.errorMessage as string) || "Awaiting customer confirmation",
+      }
     }
-  } catch (e) {
-    console.warn("[M-Pesa] queryStatus exception, using mock success", e)
-    return { success: true, resultCode: "0", resultDesc: "The service request is processed successfully." }
+
+    const resultCode = String(data.ResultCode)
+    return {
+      status: resultCode === "0" ? "success" : "failed",
+      resultCode,
+      resultDesc: (data.ResultDesc as string) || (data.errorMessage as string),
+    }
+  } catch (error) {
+    console.error("[M-Pesa] Query status exception", error)
+    return { status: "pending", error: "Could not check payment status" }
   }
 }
 
-export async function processCallback(body: any): Promise<{
+export async function processCallback(body: unknown): Promise<{
   success: boolean
   resultCode?: string
   resultDesc?: string
@@ -202,20 +262,25 @@ export async function processCallback(body: any): Promise<{
   mpesaReceiptNumber?: string
   phone?: string
   transactionDate?: string
+  checkoutRequestId?: string
 }> {
-  console.log("[M-Pesa] Processing callback...")
-
-  const stkCallback = body?.Body?.stkCallback
+  const stkCallback = (body as { Body?: { stkCallback?: Record<string, unknown> } })?.Body?.stkCallback
   if (!stkCallback) {
-    console.log("[M-Pesa] Invalid callback body")
-    return { success: false }
+    console.error("[M-Pesa] Invalid callback body")
+    return { success: false, resultDesc: "Invalid callback body" }
   }
 
-  const { ResultCode, ResultDesc, CallbackMetadata } = stkCallback
+  const ResultCode = stkCallback.ResultCode
+  const ResultDesc = stkCallback.ResultDesc as string
+  const checkoutRequestId = stkCallback.CheckoutRequestID as string | undefined
 
-  if (ResultCode !== 0) {
-    console.log("[M-Pesa] Transaction failed:", ResultDesc)
-    return { success: false, resultCode: String(ResultCode), resultDesc: ResultDesc }
+  if (String(ResultCode) !== "0") {
+    return {
+      success: false,
+      resultCode: String(ResultCode),
+      resultDesc: ResultDesc || "Transaction failed",
+      checkoutRequestId,
+    }
   }
 
   let amount = 0
@@ -223,32 +288,35 @@ export async function processCallback(body: any): Promise<{
   let phone = ""
   let transactionDate = ""
 
-  if (CallbackMetadata?.Item) {
-    for (const item of CallbackMetadata.Item) {
-      switch (item.Name) {
-        case "Amount":
-          amount = item.Value || 0
-          break
-        case "MpesaReceiptNumber":
-          mpesaReceiptNumber = item.Value || ""
-          break
-        case "PhoneNumber":
-          phone = String(item.Value || "")
-          break
-        case "TransactionDate":
-          transactionDate = String(item.Value || "")
-          break
-      }
+  const metadata = stkCallback.CallbackMetadata as
+    | { Item?: Array<{ Name: string; Value?: string | number }> }
+    | undefined
+
+  for (const item of metadata?.Item || []) {
+    switch (item.Name) {
+      case "Amount":
+        amount = Number(item.Value) || 0
+        break
+      case "MpesaReceiptNumber":
+        mpesaReceiptNumber = String(item.Value || "")
+        break
+      case "PhoneNumber":
+        phone = String(item.Value || "")
+        break
+      case "TransactionDate":
+        transactionDate = String(item.Value || "")
+        break
     }
   }
 
   return {
     success: true,
     resultCode: "0",
-    resultDesc: ResultDesc,
+    resultDesc: ResultDesc || "Success",
     amount,
     mpesaReceiptNumber,
     phone,
     transactionDate,
+    checkoutRequestId,
   }
 }

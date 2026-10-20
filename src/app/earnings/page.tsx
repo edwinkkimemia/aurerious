@@ -110,7 +110,7 @@ export default function EarningsPage() {
           </FadeIn>
           <FadeIn delay={200}>
             <p className="mt-8 text-lg sm:text-xl text-lux-navy max-w-3xl mx-auto leading-relaxed font-semibold">
-              Pay <strong>KES 1,000 once</strong> → <span className="bg-lux-gold text-white px-2 py-1 rounded-full text-sm">KES 500 bonus instantly</span> + <strong>KES 350</strong> per referral + <strong>KES 150</strong> team override forever. <span className="text-lux-gold-dark">3 referrals = KES 1,050 profit.</span> No cap. No monthly fees. Paystack & M-Pesa instant.
+              Pay <strong>KES 1,000 once</strong> → <span className="bg-lux-gold text-white px-2 py-1 rounded-full text-sm">KES 500 bonus instantly</span> + <strong>KES 350</strong> per referral + <strong>KES 150</strong> team override forever. <span className="text-lux-gold-dark">3 referrals = KES 1,050 profit.</span> No cap. No monthly fees. M-Pesa instant.
             </p>
           </FadeIn>
           <FadeIn delay={300}>
@@ -587,7 +587,7 @@ export default function EarningsPage() {
               Pay <span className="text-lux-gold">KES 1,000</span> → Get <span className="bg-lux-gold text-lux-navy px-2 py-1 rounded-full text-sm">KES 500 Bonus Instantly</span> + <span className="text-lux-gold">KES 350</span> per referral. 3 people = profit. 10 = KES 4,000 first month.
             </p>
             <p className="mt-4 text-lux-gold-light max-w-xl mx-auto text-sm font-medium">
-              2M+ paid. Instant Paystack & M-Pesa. No monthly fees. No boss. Just your phone. What are you waiting for?
+              2M+ paid. Instant M-Pesa. No monthly fees. No boss. Just your phone. What are you waiting for?
             </p>
           </FadeIn>
           <FadeIn delay={200}>

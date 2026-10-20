@@ -159,7 +159,7 @@ export default function FeaturesPageContent() {
           </FadeIn>
           <FadeIn delay={300}>
             <p className="mt-4 text-base text-lux-text-light max-w-2xl mx-auto leading-relaxed">
-              While others charge monthly, sell you stock, or pay 20%, we pay <strong className="text-lux-gold-dark">50% back to you</strong>. 5,000+ Kenyans, 2M+ paid, Paystack & M-Pesa instant. Built by Kenyans, for Kenyans — and it shows in your M-Pesa.
+              While others charge monthly, sell you stock, or pay 20%, we pay <strong className="text-lux-gold-dark">50% back to you</strong>. 5,000+ Kenyans, 2M+ paid, M-Pesa instant. Built by Kenyans, for Kenyans — and it shows in your M-Pesa.
             </p>
           </FadeIn>
         </div>

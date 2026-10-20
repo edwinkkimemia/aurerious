@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation"
 import {
   ArrowRight, CheckCircle, Shield, Zap, Clock, Gift, Users, Star, Eye, Lock, TrendingUp,
   Wallet, Phone, MessageCircle, Award, Sparkles, ChevronDown, X, EyeOff, Eye as EyeIcon,
-  CreditCard, Flame, Timer, Play
+  Smartphone, Flame, Timer, Play
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -101,7 +101,7 @@ export default function OfferPage() {
     const phoneClean = form.phone.replace(/[\s\-]/g, "")
     if (!phoneClean || !form.password) { setError("Phone and password are required"); return }
     if (form.password.length < 6) { setError("Password must be at least 6 characters"); return }
-    if (!/^07\d{8}$/.test(phoneClean)) { setError("Enter a valid 07... number (0712345678)"); return }
+    if (!/^0[17]\d{8}$/.test(phoneClean)) { setError("Enter a valid 07... or 01... number (0712345678)"); return }
     setLoading(true)
     try {
       const res = await fetch("/api/register", {
@@ -117,14 +117,11 @@ export default function OfferPage() {
       })
       const data = await res.json()
       if (!res.ok) { setError(data.error || "Something went wrong. Try again."); return }
-      if (data.authorizationUrl && !data.authorizationUrl.includes("paystack.mock")) {
-        window.location.href = data.authorizationUrl
-      } else if (data.authorizationUrl) {
-        // mock -> poll simulation then success
-        window.location.href = `/register?ref=${refCode || form.referral || ""}`
-      } else {
-        router.push("/login?verified=true")
-      }
+      router.push(
+        `/register/waiting?checkout=${encodeURIComponent(data.checkoutRequestId || "")}` +
+          `&phone=${encodeURIComponent(data.phone || phoneClean)}` +
+          `&reference=${encodeURIComponent(data.reference || "")}`
+      )
     } catch {
       setError("Network error. Check connection and try again.")
     } finally { setLoading(false) }
@@ -161,7 +158,7 @@ export default function OfferPage() {
             <Badge className="hidden sm:inline-flex ml-2 bg-green-50 text-green-700 border border-green-200 gap-1 text-[11px]"><span className="h-2 w-2 bg-green-500 rounded-full animate-pulse" /> LIVE PAYMENTS</Badge>
           </div>
           <div className="flex items-center gap-3">
-            <span className="hidden md:inline-flex items-center gap-1.5 text-xs text-gray-500"><Shield className="h-3.5 w-3.5 text-green-600" /> Paystack Secured</span>
+            <span className="hidden md:inline-flex items-center gap-1.5 text-xs text-gray-500"><Shield className="h-3.5 w-3.5 text-green-600" /> M-Pesa Secured</span>
             <a href="https://wa.me/254753728292?text=Hello%20Zuri%20Agency%2C%20I%20saw%20your%20ad%20and%20want%20to%20join%20please%20help" target="_blank" rel="noopener noreferrer" className="hidden sm:inline-flex items-center gap-1.5 text-xs font-semibold text-[#0F2847] hover:text-[#D4AF37]">
               <MessageCircle className="h-4 w-4" /> WhatsApp Help
             </a>
@@ -227,7 +224,7 @@ export default function OfferPage() {
                     <p className="text-[10px] opacity-80">/month w/ team</p>
                   </div>
                 </div>
-                <p className="text-[11px] text-white/60 mt-2.5 text-center">Includes KES 500 instant bonus. 5,000+ earning. Paystack + M-Pesa instant.</p>
+                <p className="text-[11px] text-white/60 mt-2.5 text-center">Includes KES 500 instant bonus. 5,000+ earning. M-Pesa instant.</p>
               </div>
 
               {/* trust row */}
@@ -279,7 +276,7 @@ export default function OfferPage() {
                     <div>
                       <Label htmlFor="email" className="text-xs font-semibold text-gray-700">Email Address <span className="text-red-500">*</span></Label>
                       <Input id="email" required type="email" placeholder="you@example.com" value={form.email} onChange={e => setForm(p => ({ ...p, email: e.target.value }))} className="mt-1 h-11 rounded-xl border-gray-200 focus-visible:ring-[#D4AF37] focus-visible:border-[#D4AF37]" />
-                      <p className="text-[11px] text-gray-500 mt-1">For Paystack receipt & M-Pesa confirmation</p>
+                      <p className="text-[11px] text-gray-500 mt-1">For your M-Pesa receipt & confirmation</p>
                     </div>
                     <div>
                       <Label htmlFor="phone" className="text-xs font-semibold text-gray-700">M-Pesa Number <span className="text-red-500">*</span></Label>
@@ -324,11 +321,11 @@ export default function OfferPage() {
                   </Button>
 
                   <div className="flex items-center justify-center gap-3 text-[11px] text-gray-500">
-                    <span className="inline-flex items-center gap-1"><Lock className="h-3 w-3" /> Paystack Secured</span>
+                    <span className="inline-flex items-center gap-1"><Lock className="h-3 w-3" /> M-Pesa Secured</span>
                     <span>•</span>
                     <span className="inline-flex items-center gap-1"><Shield className="h-3 w-3 text-green-600" /> 256-bit SSL</span>
                     <span>•</span>
-                    <span>M-Pesa • Card • Bank</span>
+                    <span>M-Pesa • Safaricom</span>
                   </div>
 
                   <div className="rounded-xl bg-[#FDF6E3] border border-[#D4AF37]/20 p-3 flex items-start gap-3">
@@ -369,7 +366,7 @@ export default function OfferPage() {
           <p className="text-center text-[11px] font-bold tracking-widest text-gray-500 uppercase mb-3">Trusted & Secured By</p>
           <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-8 text-xs font-bold text-gray-600">
             <span className="inline-flex items-center gap-2 bg-gray-50 border border-gray-100 px-3 py-1.5 rounded-full"><span className="h-2 w-2 bg-[#00C853] rounded-full" /> M-Pesa</span>
-            <span className="inline-flex items-center gap-2 bg-gray-50 border border-gray-100 px-3 py-1.5 rounded-full"><span className="h-2 w-2 bg-[#0b5cff] rounded-full" /> Paystack</span>
+            <span className="inline-flex items-center gap-2 bg-gray-50 border border-gray-100 px-3 py-1.5 rounded-full"><span className="h-2 w-2 bg-[#00C853] rounded-full" /> M-Pesa STK Push</span>
             <span className="inline-flex items-center gap-2 bg-gray-50 border border-gray-100 px-3 py-1.5 rounded-full"><Shield className="h-3.5 w-3.5 text-green-600" /> Safaricom Secured</span>
             <span className="inline-flex items-center gap-2 bg-[#D4AF37] text-white px-3 py-1.5 rounded-full">5,000+ Active Members</span>
             <span className="inline-flex items-center gap-2 bg-[#0F2847] text-white px-3 py-1.5 rounded-full">KES 2.3M+ Paid</span>
@@ -425,7 +422,7 @@ export default function OfferPage() {
           <div className="mt-10 grid md:grid-cols-3 gap-6 relative">
             <div className="hidden md:block absolute top-[44px] left-[18%] right-[18%] h-0.5 bg-gradient-to-r from-[#D4AF37] via-[#D4AF37]/50 to-[#D4AF37] border-dashed" style={{ backgroundImage: "repeating-linear-gradient(90deg, #D4AF37 0 8px, transparent 8px 16px)" }} />
             {[
-              { n: "01", title: "Pay KES 1,000 Once", desc: "Secure Paystack checkout. M-Pesa, Card, Bank. Takes 20 seconds. Your KES 500 bonus is credited instantly.", icon: CreditCard, color: "bg-[#0F2847]" },
+              { n: "01", title: "Pay KES 1,000 Once", desc: "Secure M-Pesa STK Push. Enter your PIN. Takes 20 seconds. Your KES 500 bonus is credited instantly.", icon: Smartphone, color: "bg-[#0F2847]" },
               { n: "02", title: "Get Your Link Instantly", desc: "Dashboard opens immediately. Copy your personal link + get done-for-you WhatsApp/TikTok scripts & posters.", icon: Wallet, color: "bg-[#D4AF37]" },
               { n: "03", title: "Share & Get M-Pesa", desc: "Post on Status, groups, TikTok. Friend pays KES 1,000 → you get KES 350 in 60 seconds. They invite → you get KES 150 more. Forever.", icon: Zap, color: "bg-[#1A3660]" },
             ].map(s => (
@@ -690,8 +687,8 @@ export default function OfferPage() {
           </div>
           <div className="mt-8 space-y-3">
             {[
-              { q: "Is this a pyramid / scam? Will you disappear?", a: "We are Kenyan-owned, Paystack-verified, with 5,000+ members and KES 2.3M paid with instant M-Pesa. You get KES 500 back instantly – scammers don’t pay you to join. You can withdraw even KES 350 anytime, 24/7. We make money only when you do." },
-              { q: "When do I get the KES 350? Do I wait weeks?", a: "60 seconds. Friend pays KES 1,000 via Paystack → our system auto-sends KES 350 to your M-Pesa. No manual approval. No minimum withdrawal. We show M-Pesa codes live above." },
+              { q: "Is this a pyramid / scam? Will you disappear?", a: "We are Kenyan-owned, Safaricom-verified, with 5,000+ members and KES 2.3M paid with instant M-Pesa. You get KES 500 back instantly – scammers don’t pay you to join. You can withdraw even KES 350 anytime, 24/7. We make money only when you do." },
+              { q: "When do I get the KES 350? Do I wait weeks?", a: "60 seconds. Friend pays KES 1,000 via M-Pesa → our system auto-sends KES 350 to your M-Pesa. No manual approval. No minimum withdrawal. We show M-Pesa codes live above." },
               { q: "What if I have no followers / I’m not popular?", a: "You don’t need 10k followers. 80% of our members get their first 3 joins from family + 2 WhatsApp groups. We give you copy-paste scripts and posters. If you can forward a message, you can earn." },
               { q: "Do I need to sell products or recruit forever?", a: "No product. No stock. No delivery. You share a link. That’s it. And ‘forever’ is the best part – your team’s invites pay you KES 150 even when you’re offline. That’s why it’s passive." },
               { q: "What if I join and fail to get anyone?", a: "You still keep the KES 500 instant bonus. And we give you 30 days of support + scripts. Most who post 2x/day on Status get 2-3 joins in 72 hours. But if you truly get zero, you’ve only risked KES 500 net – less than 2 bundles." },
@@ -723,7 +720,7 @@ export default function OfferPage() {
           <div className="mt-6 flex flex-wrap justify-center gap-3 text-xs text-white/60">
             <span className="inline-flex items-center gap-1.5"><CheckCircle className="h-3.5 w-3.5 text-[#F0D060]" /> No monthly fees</span>
             <span className="inline-flex items-center gap-1.5"><CheckCircle className="h-3.5 w-3.5 text-[#F0D060]" /> Instant M-Pesa</span>
-            <span className="inline-flex items-center gap-1.5"><CheckCircle className="h-3.5 w-3.5 text-[#F0D060]" /> Paystack Secured</span>
+            <span className="inline-flex items-center gap-1.5"><CheckCircle className="h-3.5 w-3.5 text-[#F0D060]" /> M-Pesa Secured</span>
             <span className="inline-flex items-center gap-1.5"><CheckCircle className="h-3.5 w-3.5 text-[#F0D060]" /> 24/7 Withdraw</span>
           </div>
 
@@ -738,7 +735,7 @@ export default function OfferPage() {
             </a>
           </div>
 
-          <p className="mt-4 text-xs text-white/50">Secure checkout via Paystack • M-Pesa • Card • Bank • 256-bit SSL • Only {spots} bonuses left</p>
+          <p className="mt-4 text-xs text-white/50">Secure M-Pesa STK Push • Safaricom • Instant confirmation • 256-bit SSL • Only {spots} bonuses left</p>
 
           <div className="mt-8 flex items-center justify-center gap-2 text-[11px] text-white/40">
             <Shield className="h-3 w-3" /> <span>Your data is encrypted. We never share your number.</span>

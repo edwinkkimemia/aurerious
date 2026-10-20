@@ -1,39 +1,35 @@
 import { NextRequest, NextResponse } from "next/server"
+import bcrypt from "bcryptjs"
 import { db } from "@/lib/db"
-import { initializeTransaction } from "@/services/paystack"
+import { initiateMembershipPayment } from "@/lib/payments"
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { login } = body
+    const { login, password } = body
 
-    if (!login) {
+    if (!login || !password) {
       return NextResponse.json(
-        { error: "Email or phone is required" },
+        { error: "Email/phone and password are required" },
         { status: 400 }
       )
     }
 
     const user = await db.user.findFirst({
       where: {
-        OR: [
-          { email: login },
-          { phone: login },
-        ],
+        OR: [{ email: login }, { phone: login }],
       },
       select: {
         id: true,
         status: true,
         phone: true,
         mpesaNumber: true,
+        password: true,
       },
     })
 
-    if (!user) {
-      return NextResponse.json(
-        { error: "User not found" },
-        { status: 404 }
-      )
+    if (!user?.password || !(await bcrypt.compare(password, user.password))) {
+      return NextResponse.json({ error: "Invalid credentials" }, { status: 401 })
     }
 
     if (user.status !== "pending") {
@@ -43,51 +39,24 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Fetch user email for Paystack
-    const fullUser = await db.user.findUnique({
-      where: { id: user.id },
-      select: { email: true, phone: true },
-    })
-    const email = fullUser?.email || `${fullUser?.phone}@zuriagency.local`
-    const phone = fullUser?.phone || user.phone
-    const reference = `ZUR${Date.now()}${Math.random().toString(36).substring(2, 7).toUpperCase()}`
-    const callbackUrl = process.env.PAYSTACK_CALLBACK_URL || `${process.env.NEXT_PUBLIC_APP_URL || "https://zuriweb.vercel.app"}/api/paystack/callback`
-
-    const paystackResult = await initializeTransaction({
-      email: email!,
-      amount: 1000,
-      reference,
-      callbackUrl,
-      phone,
-      metadata: { userId: user.id, phone },
+    const payment = await initiateMembershipPayment({
+      userId: user.id,
+      phone: user.mpesaNumber || user.phone,
     })
 
-    if (!paystackResult.success) {
+    if (!payment.success) {
       return NextResponse.json(
-        { error: paystackResult.error || "Payment initialization failed" },
-        { status: 500 }
+        { error: payment.error || "Could not send the M-Pesa prompt" },
+        { status: 502 }
       )
     }
 
-    await db.paystackTransaction.create({
-      data: {
-        userId: user.id,
-        email: email!,
-        phone,
-        amount: 1000,
-        reference,
-        accessCode: paystackResult.accessCode,
-        authorizationUrl: paystackResult.authorizationUrl,
-        status: "pending",
-      },
-    })
-
     return NextResponse.json(
       {
-        message: "Redirect to Paystack for payment",
-        authorizationUrl: paystackResult.authorizationUrl,
-        reference,
-        accessCode: paystackResult.accessCode,
+        message: "M-Pesa STK push sent. Enter your M-Pesa PIN to complete payment.",
+        checkoutRequestId: payment.checkoutRequestId,
+        reference: payment.reference,
+        phone: payment.phone,
       },
       { status: 201 }
     )

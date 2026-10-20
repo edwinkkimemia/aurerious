@@ -2,9 +2,9 @@ import { NextRequest, NextResponse } from "next/server"
 import { db } from "@/lib/db"
 import bcrypt from "bcryptjs"
 import { generateReferralCode } from "@/lib/utils"
-import { initializeTransaction } from "@/services/paystack"
+import { initiateMembershipPayment } from "@/lib/payments"
 
-const PHONE_REGEX = /^07\d{8}$/
+const PHONE_REGEX = /^0[17]\d{8}$/
 
 export async function POST(request: NextRequest) {
   try {
@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
 
     if (!PHONE_REGEX.test(phone)) {
       return NextResponse.json(
-        { error: "Phone must be a valid Kenyan number (07XX...)" },
+        { error: "Phone must be a valid Kenyan number (07XX or 01XX)" },
         { status: 400 }
       )
     }
@@ -101,50 +101,27 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    const reference = `ZUR${Date.now()}${Math.random().toString(36).substring(2, 7).toUpperCase()}`
-    const customerEmail = email
-    const callbackUrl = process.env.PAYSTACK_CALLBACK_URL || `${process.env.NEXT_PUBLIC_APP_URL || "https://zuriweb.vercel.app"}/api/paystack/callback`
-
-    const paystackResult = await initializeTransaction({
-      email: customerEmail,
-      amount: 1000,
-      reference,
-      callbackUrl,
+    const payment = await initiateMembershipPayment({
+      userId: user.id,
       phone,
-      metadata: {
-        userId: user.id,
-        phone,
-        referralCode: incomingReferralCode || "",
-      },
     })
 
-    if (!paystackResult.success) {
+    if (!payment.success) {
       return NextResponse.json(
-        { error: paystackResult.error || "Payment initialization failed" },
-        { status: 500 }
+        {
+          error: `${payment.error || "Could not send the M-Pesa prompt"}. Your account was created — sign in to retry payment.`,
+          requiresLogin: true,
+        },
+        { status: 502 }
       )
     }
 
-    await db.paystackTransaction.create({
-      data: {
-        userId: user.id,
-        email: customerEmail,
-        phone,
-        amount: 1000,
-        reference,
-        accessCode: paystackResult.accessCode,
-        authorizationUrl: paystackResult.authorizationUrl,
-        status: "pending",
-        metadata: JSON.stringify({ userId: user.id, phone, referralCode: incomingReferralCode || "" }),
-      },
-    })
-
     return NextResponse.json(
       {
-        message: "Redirect to Paystack for payment",
-        authorizationUrl: paystackResult.authorizationUrl,
-        reference,
-        accessCode: paystackResult.accessCode,
+        message: "M-Pesa STK push sent. Enter your M-Pesa PIN to complete payment.",
+        checkoutRequestId: payment.checkoutRequestId,
+        reference: payment.reference,
+        phone: payment.phone,
         userId: user.id,
       },
       { status: 201 }

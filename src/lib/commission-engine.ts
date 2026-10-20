@@ -118,27 +118,33 @@ export async function processReferralCommission(refereeId: string) {
     const settings = await getCommissionSettings()
     const directAmount = settings.referralFee * settings.directRate
 
-    const directCommission = await db.commission.create({
-      data: {
-        userId: referral.referrerId,
-        referralId: referral.id,
-        amount: directAmount,
-        type: "direct",
-        status: "pending",
-        description: `Direct commission for referring ${referee.name || referee.phone}`,
-      },
+    const existingDirect = await db.commission.findFirst({
+      where: { referralId: referral.id, type: "direct" },
     })
 
-    await db.transaction.create({
-      data: {
-        userId: referral.referrerId,
-        type: "commission",
-        amount: directAmount,
-        status: "pending",
-        reference: `DIR-${directCommission.id}`,
-        description: `Direct referral commission - KES ${directAmount.toFixed(2)}`,
-      },
-    })
+    if (!existingDirect) {
+      const directCommission = await db.commission.create({
+        data: {
+          userId: referral.referrerId,
+          referralId: referral.id,
+          amount: directAmount,
+          type: "direct",
+          status: "pending",
+          description: `Direct commission for referring ${referee.name || referee.phone}`,
+        },
+      })
+
+      await db.transaction.create({
+        data: {
+          userId: referral.referrerId,
+          type: "commission",
+          amount: directAmount,
+          status: "pending",
+          reference: `DIR-${directCommission.id}`,
+          description: `Direct referral commission - KES ${directAmount.toFixed(2)}`,
+        },
+      })
+    }
 
     // Check if referrer's signup bonus can be unlocked after this referral
     await checkAndUnlockSignupBonus(referral.referrerId)
@@ -153,27 +159,33 @@ export async function processReferralCommission(refereeId: string) {
     if (uplineReferral) {
       const overrideAmount = settings.referralFee * settings.uplineRate
 
-      const overrideCommission = await db.commission.create({
-        data: {
-          userId: uplineReferral.referrerId,
-          referralId: referral.id,
-          amount: overrideAmount,
-          type: "override",
-          status: "pending",
-          description: `Override commission for level 2 referral of ${referee.name || referee.phone}`,
-        },
+      const existingOverride = await db.commission.findFirst({
+        where: { referralId: referral.id, type: "override" },
       })
 
-      await db.transaction.create({
-        data: {
-          userId: uplineReferral.referrerId,
-          type: "commission",
-          amount: overrideAmount,
-          status: "pending",
-          reference: `OVR-${overrideCommission.id}`,
-          description: `Override commission - KES ${overrideAmount.toFixed(2)}`,
-        },
-      })
+      if (!existingOverride) {
+        const overrideCommission = await db.commission.create({
+          data: {
+            userId: uplineReferral.referrerId,
+            referralId: referral.id,
+            amount: overrideAmount,
+            type: "override",
+            status: "pending",
+            description: `Override commission for level 2 referral of ${referee.name || referee.phone}`,
+          },
+        })
+
+        await db.transaction.create({
+          data: {
+            userId: uplineReferral.referrerId,
+            type: "commission",
+            amount: overrideAmount,
+            status: "pending",
+            reference: `OVR-${overrideCommission.id}`,
+            description: `Override commission - KES ${overrideAmount.toFixed(2)}`,
+          },
+        })
+      }
     }
   } catch (error) {
     console.error("Commission processing error:", error)

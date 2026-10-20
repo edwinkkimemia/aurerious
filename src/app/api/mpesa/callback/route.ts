@@ -1,90 +1,84 @@
 import { NextRequest, NextResponse } from "next/server"
 import { db } from "@/lib/db"
 import { processCallback } from "@/services/mpesa"
-import { createSignupBonus, processReferralCommission } from "@/lib/commission-engine"
+import { failMpesaPayment, finalizeMpesaPayment } from "@/lib/payments"
+
+const SAFARICOM_ACK = { ResultCode: 0, ResultDesc: "Success" }
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json()
+    const body = await request.json().catch(() => null)
+    if (!body) {
+      console.error("[M-Pesa Callback] Invalid JSON body")
+      return NextResponse.json(SAFARICOM_ACK)
+    }
+
     console.log("[M-Pesa Callback] Received:", JSON.stringify(body))
 
     const result = await processCallback(body)
-
-    if (!result.success) {
-      if (body?.Body?.stkCallback?.CheckoutRequestID) {
-        await db.mpesaTransaction.updateMany({
-          where: {
-            checkoutRequestId: body.Body.stkCallback.CheckoutRequestID,
-          },
-          data: {
-            status: "failed",
-            resultCode: result.resultCode || "1",
-            resultDesc: result.resultDesc || "Transaction failed",
-          },
-        })
-      }
-
-      return NextResponse.json({ message: "Callback processed", success: false })
-    }
-
-    const checkoutRequestId = body?.Body?.stkCallback?.CheckoutRequestID
+    const checkoutRequestId =
+      result.checkoutRequestId ||
+      (body as { Body?: { stkCallback?: { CheckoutRequestID?: string } } })?.Body?.stkCallback
+        ?.CheckoutRequestID
 
     if (!checkoutRequestId) {
-      return NextResponse.json(
-        { error: "Missing checkout request ID" },
-        { status: 400 }
-      )
+      console.error("[M-Pesa Callback] Missing CheckoutRequestID")
+      return NextResponse.json(SAFARICOM_ACK)
     }
 
-    const existingTransaction = await db.mpesaTransaction.findFirst({
+    if (!result.success) {
+      await failMpesaPayment({
+        checkoutRequestId,
+        resultCode: result.resultCode,
+        resultDesc: result.resultDesc,
+      })
+      return NextResponse.json(SAFARICOM_ACK)
+    }
+
+    const attempt = await db.mpesaTransaction.findFirst({
       where: { checkoutRequestId },
     })
 
-    if (existingTransaction) {
-      await db.mpesaTransaction.update({
-        where: { id: existingTransaction.id },
-        data: {
-          status: "completed",
-          resultCode: result.resultCode || "0",
-          resultDesc: result.resultDesc || "Success",
-        },
-      })
-
-      if (existingTransaction.userId) {
-        await db.user.update({
-          where: { id: existingTransaction.userId },
-          data: { status: "active" },
-        })
-
-        const transaction = await db.transaction.create({
-          data: {
-            userId: existingTransaction.userId,
-            type: "payment",
-            amount: existingTransaction.amount,
-            status: "completed",
-            reference: result.mpesaReceiptNumber || existingTransaction.reference,
-            description: `M-Pesa payment of KES ${existingTransaction.amount.toFixed(2)}`,
-          },
-        })
-
-        if (existingTransaction.type === "registration") {
-          // Credit KES 500 signup airtime bonus immediately (locked until 5 referrals)
-          await createSignupBonus(existingTransaction.userId)
-          await processReferralCommission(existingTransaction.userId)
-        }
-
-        return NextResponse.json({
-          message: "Payment confirmed",
-          transactionId: transaction.id,
-          mpesaReceiptNumber: result.mpesaReceiptNumber,
-          success: true,
-        })
-      }
+    if (!attempt) {
+      console.error("[M-Pesa Callback] Transaction not found:", checkoutRequestId)
+      return NextResponse.json(SAFARICOM_ACK)
     }
 
-    return NextResponse.json({ message: "Callback processed", success: true })
+    // Protect against spoofed callbacks with a mismatched amount.
+    if (!result.amount || Math.abs(result.amount - attempt.amount) > 0.5) {
+      console.error("[M-Pesa Callback] Amount mismatch", {
+        checkoutRequestId,
+        expected: attempt.amount,
+        received: result.amount,
+      })
+      await failMpesaPayment({
+        checkoutRequestId,
+        resultCode: "amount_mismatch",
+        resultDesc: "Callback amount did not match the payment request",
+      })
+      return NextResponse.json(SAFARICOM_ACK)
+    }
+
+    if (!result.mpesaReceiptNumber) {
+      console.error("[M-Pesa Callback] Missing receipt number:", checkoutRequestId)
+      await failMpesaPayment({
+        checkoutRequestId,
+        resultCode: "missing_receipt",
+        resultDesc: "M-Pesa receipt number was missing",
+      })
+      return NextResponse.json(SAFARICOM_ACK)
+    }
+
+    await finalizeMpesaPayment({
+      checkoutRequestId,
+      receiptNumber: result.mpesaReceiptNumber,
+      resultDesc: result.resultDesc || "Payment received",
+    })
+
+    return NextResponse.json(SAFARICOM_ACK)
   } catch (error) {
     console.error("M-Pesa callback error:", error)
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+    // Always acknowledge so Safaricom does not retry indefinitely.
+    return NextResponse.json(SAFARICOM_ACK)
   }
 }

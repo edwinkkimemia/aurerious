@@ -52,7 +52,7 @@ export default function HomePage() {
                   <span className="bg-lux-gold text-white px-3 py-1 rounded-full text-xs sm:text-sm whitespace-nowrap">KES 500 Bonus Instantly</span>
                   <span>+ Earn <strong>KES 350</strong> per direct + <strong>KES 150</strong> override forever.</span>
                 </p>
-                <p className="mt-2 text-sm text-lux-text-light text-center lg:text-left">50% payout. Instant Paystack & M-Pesa.</p>
+                <p className="mt-2 text-sm text-lux-text-light text-center lg:text-left">50% payout. Instant M-Pesa.</p>
               </FadeIn>
 
               <FadeIn delay={250}>
@@ -82,7 +82,7 @@ export default function HomePage() {
                     <span className="break-words">KES 500 Bonus Instantly + 3 Referrals = KES 1,050 (Already Profitable!)</span>
                   </p>
                   <p className="text-xs text-lux-text-light flex items-center gap-1.5 justify-center lg:justify-start flex-wrap text-center">
-                    <Clock className="h-3 w-3 flex-shrink-0" /> Paystack & M-Pesa instant. No monthly fees. Cancel anytime.
+                    <Clock className="h-3 w-3 flex-shrink-0" /> M-Pesa instant. No monthly fees. Cancel anytime.
                   </p>
                 </div>
               </FadeIn>
@@ -133,7 +133,7 @@ export default function HomePage() {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 lg:gap-8">
             {[
               { icon: Gift, text: "KES 500 Bonus Instantly", color: "text-lux-gold-dark" },
-              { icon: Zap, text: "Instant Paystack & M-Pesa", color: "text-lux-gold-dark" },
+              { icon: Zap, text: "Instant M-Pesa", color: "text-lux-gold-dark" },
               { icon: TrendingUp, text: "50% Payout - Highest in Kenya", color: "text-lux-navy" },
               { icon: Shield, text: "Trusted by 5,000+ Kenyans", color: "text-lux-navy" },
             ].map((item) => (
@@ -166,7 +166,7 @@ export default function HomePage() {
                     <div className="bg-white/10 rounded-xl p-3 border-2 border-lux-gold"><p className="font-bold text-xl text-lux-gold">10</p><p className="text-xs text-white/80">Referrals</p><p className="font-bold text-sm">= KES 3,500</p><p className="text-[10px] text-white">+ KES 7,500 team</p></div>
                     <div className="bg-lux-gold rounded-xl p-3 text-lux-navy"><p className="font-bold text-xl">20</p><p className="text-xs">Referrals</p><p className="font-bold text-sm">= KES 7,000</p><p className="text-[10px]">+ KES 15k team</p></div>
                   </div>
-                  <p className="text-xs text-white/70 mt-3 text-center">+ KES 500 bonus credited instantly. 5,000+ earning. 2M+ paid. Paystack & M-Pesa instant.</p>
+                  <p className="text-xs text-white/70 mt-3 text-center">+ KES 500 bonus credited instantly. 5,000+ earning. 2M+ paid. M-Pesa instant.</p>
                 </div>
               </FadeIn>
               <FadeIn delay={100}>
@@ -191,7 +191,7 @@ export default function HomePage() {
                   {[
                     { icon: Gift, title: "KES 500 Bonus Instantly", desc: "Pay KES 1,000 → get KES 500 back instantly. You’re 50% recovered before you even start!" },
                     { icon: Wallet, title: "KES 350 + KES 150 Forever", desc: "50% payout: KES 350 direct + KES 150 override on every team referral — for life. Highest in Kenya." },
-                    { icon: Zap, title: "Instant Paystack & M-Pesa", desc: "No waiting. No thresholds. KES 350 hits your phone in seconds. Withdraw anytime 24/7." },
+                    { icon: Zap, title: "Instant M-Pesa", desc: "No waiting. No thresholds. KES 350 hits your phone in seconds. Withdraw anytime 24/7." },
                     { icon: Users, title: "5,000+ Already Earning", desc: "Join real Kenyans — students, mamas, riders — already cashing out. 2M+ paid, 99.9% success." },
                     { icon: Target, title: "Zero Skills Needed", desc: "If you can share a WhatsApp status, you can earn. We give you ready messages & graphics." },
                     { icon: Clock, title: "Earn In 15 Min/Day", desc: "No boss. No inventory. Share on WhatsApp, TikTok, Telegram — earn while you sleep." },
@@ -238,8 +238,8 @@ export default function HomePage() {
               },
               {
                 icon: Zap,
-                title: "Paystack & M-Pesa Instant — 60 Seconds",
-                desc: "No weekly payouts. No minimum withdrawal stress. KES 350 hits your M-Pesa in 60 seconds. Paystack secure checkout. 24/7, even Sunday. Your money, your phone, instantly.",
+                title: "M-Pesa Instant — 60 Seconds",
+                desc: "No weekly payouts. No minimum withdrawal stress. KES 350 hits your M-Pesa in 60 seconds. Secure M-Pesa STK Push. 24/7, even Sunday. Your money, your phone, instantly.",
               },
               {
                 icon: Shield,

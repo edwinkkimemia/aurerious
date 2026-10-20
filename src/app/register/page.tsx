@@ -1,28 +1,22 @@
 "use client"
 
-import { useState, FormEvent, useEffect, useRef, Suspense } from "react"
+import { useState, FormEvent, useEffect, Suspense } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { Eye, EyeOff, UserPlus, Smartphone, Info, AlertCircle, CheckCircle2, Loader2, Phone, ArrowRight, CreditCard } from "lucide-react"
+import { Eye, EyeOff, Smartphone, AlertCircle, CheckCircle2, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 
 function RegisterForm() {
   const router = useRouter()
   const [showPassword, setShowPassword] = useState(false)
-  const [showPaystackInfo, setShowPaystackInfo] = useState(false)
   const [form, setForm] = useState({ name: "", email: "", phone: "", password: "", referral: "" })
   const [error, setError] = useState("")
   const [success, setSuccess] = useState("")
   const [loading, setLoading] = useState(false)
   const [refParam, setRefParam] = useState("")
-  const [step, setStep] = useState<"form" | "payment" | "success">("form")
-  const [reference, setReference] = useState("")
-  const [authorizationUrl, setAuthorizationUrl] = useState("")
-  const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
@@ -30,12 +24,6 @@ function RegisterForm() {
     if (ref) {
       setRefParam(ref)
       localStorage.setItem("ref", ref)
-    }
-  }, [])
-
-  useEffect(() => {
-    return () => {
-      if (pollingRef.current) clearInterval(pollingRef.current)
     }
   }, [])
 
@@ -68,8 +56,8 @@ function RegisterForm() {
     }
 
     const phoneClean = form.phone.replace(/[\s\-]/g, "")
-    if (!/^07\d{8}$/.test(phoneClean)) {
-      setError("Phone must be a valid Kenyan number starting with 07 (e.g. 0712345678)")
+    if (!/^0[17]\d{8}$/.test(phoneClean)) {
+      setError("Phone must be a valid Kenyan number starting with 07 or 01 (e.g. 0712345678)")
       return
     }
 
@@ -91,112 +79,16 @@ function RegisterForm() {
         setError(data.error || "Registration failed")
         return
       }
-      setReference(data.reference)
-      setAuthorizationUrl(data.authorizationUrl)
-      setStep("payment")
-      // Redirect to Paystack checkout (if not mock, user will complete payment there)
-      if (data.authorizationUrl) {
-        // For mock URLs, we keep polling; for real Paystack, redirect
-        if (!data.authorizationUrl.includes("paystack.mock")) {
-          window.location.href = data.authorizationUrl
-        }
-      }
+      router.push(
+        `/register/waiting?checkout=${encodeURIComponent(data.checkoutRequestId || "")}` +
+          `&phone=${encodeURIComponent(data.phone || phoneClean)}` +
+          `&reference=${encodeURIComponent(data.reference || "")}`
+      )
     } catch {
       setError("Network error. Please try again.")
     } finally {
       setLoading(false)
     }
-  }
-
-  useEffect(() => {
-    if (step !== "payment" || !reference) return
-
-    pollingRef.current = setInterval(async () => {
-      try {
-        const res = await fetch(`/api/paystack/verify?reference=${reference}`)
-        const data = await res.json()
-        if (data.status === "completed") {
-          if (pollingRef.current) clearInterval(pollingRef.current)
-          setStep("success")
-          setTimeout(() => router.push("/login?verified=true"), 2000)
-        } else if (data.status === "failed") {
-          if (pollingRef.current) clearInterval(pollingRef.current)
-          setError("Payment failed. Please try again.")
-          setStep("form")
-        }
-      } catch {
-        // ignore polling errors
-      }
-    }, 3000)
-
-    return () => {
-      if (pollingRef.current) clearInterval(pollingRef.current)
-    }
-  }, [step, reference, router])
-
-  if (step === "payment") {
-    return (
-      <div className="min-h-screen bg-lux-cream flex flex-col items-center justify-center p-4 relative overflow-hidden">
-        <div className="absolute inset-0 pointer-events-none">
-          <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-lux-gold/5 rounded-full blur-3xl" />
-          <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-lux-navy/5 rounded-full blur-3xl" />
-        </div>
-
-        <Card className="w-full max-w-lg border-lux-gold/20 shadow-2xl glass">
-          <CardContent className="p-8 sm:p-10 text-center">
-            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-lux-gold/10 mb-6">
-              <CreditCard className="h-8 w-8 text-lux-gold" />
-            </div>
-            <CardTitle className="font-heading text-2xl text-lux-navy mb-2">Complete Payment</CardTitle>
-            <CardDescription className="text-lux-text-light text-base leading-relaxed">
-              You will be redirected to <strong className="text-lux-navy">Paystack</strong> secure checkout to complete the KES 1,000 membership payment for <strong className="text-lux-navy">{form.phone}</strong>.
-            </CardDescription>
-
-            <div className="mt-8 space-y-4">
-              {authorizationUrl && !authorizationUrl.includes("paystack.mock") ? (
-                <Button onClick={() => (window.location.href = authorizationUrl)} className="w-full bg-lux-gold hover:bg-lux-gold-dark text-white font-heading font-bold h-11 rounded-lg shadow-lg">
-                  <CreditCard className="h-4 w-4 mr-2" />
-                  Pay KES 1,000 via Paystack
-                </Button>
-              ) : (
-                <div className="flex items-center gap-3 rounded-xl bg-lux-gold-pale/60 border border-lux-gold/10 px-4 py-3">
-                  <Loader2 className="h-5 w-5 text-lux-gold animate-spin flex-shrink-0" />
-                  <span className="text-sm text-lux-text">Waiting for payment confirmation...</span>
-                </div>
-              )}
-
-              <p className="text-xs text-lux-text-light leading-relaxed">
-                Secure payment via Paystack. Supports M-Pesa, Card, and Bank. You will be redirected back after payment.
-              </p>
-              <p className="text-xs text-lux-text-light">Reference: <span className="font-mono text-lux-navy">{reference}</span></p>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    )
-  }
-
-  if (step === "success") {
-    return (
-      <div className="min-h-screen bg-lux-cream flex flex-col items-center justify-center p-4 relative overflow-hidden">
-        <div className="absolute inset-0 pointer-events-none">
-          <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-lux-gold/5 rounded-full blur-3xl" />
-          <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-lux-navy/5 rounded-full blur-3xl" />
-        </div>
-
-        <Card className="w-full max-w-lg border-lux-gold/20 shadow-2xl glass">
-          <CardContent className="p-8 sm:p-10 text-center">
-            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-green-100 mb-6">
-              <CheckCircle2 className="h-8 w-8 text-green-600" />
-            </div>
-            <CardTitle className="font-heading text-2xl text-lux-navy mb-2">Payment Successful!</CardTitle>
-            <CardDescription className="text-lux-text-light text-base leading-relaxed">
-              Your account is now active. Redirecting you to login...
-            </CardDescription>
-          </CardContent>
-        </Card>
-      </div>
-    )
   }
 
   return (
@@ -284,19 +176,19 @@ function RegisterForm() {
 
             <div className="rounded-xl bg-lux-gold-pale border border-lux-gold/20 p-4">
               <div className="flex items-start gap-3">
-                <CreditCard className="h-5 w-5 text-lux-gold mt-0.5 flex-shrink-0" />
+                <Smartphone className="h-5 w-5 text-lux-gold mt-0.5 flex-shrink-0" />
                 <div className="flex-1 min-w-0">
                   <p className="font-heading font-semibold text-sm text-lux-navy">One-Time Membership Fee</p>
                   <p className="text-sm text-lux-text-light mt-1">
-                    Pay <strong className="text-lux-navy">KES 1,000</strong> via Paystack to activate your account and start earning. Get <strong className="text-lux-gold">KES 500 airtime bonus</strong> instantly.
+                    Pay <strong className="text-lux-navy">KES 1,000</strong> via M-Pesa STK Push to activate your account and start earning. Get <strong className="text-lux-gold">KES 500 airtime bonus</strong> instantly.
                   </p>
                 </div>
               </div>
             </div>
 
             <Button type="submit" disabled={loading} className="w-full bg-lux-gold hover:bg-lux-gold-dark text-white font-heading font-bold h-11 rounded-lg shadow-lg shadow-lux-gold/25 hover:shadow-xl transition-all btn-shine">
-              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <CreditCard className="h-4 w-4" />}
-              {loading ? "Initiating Payment..." : "Pay KES 1,000 via Paystack"}
+              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Smartphone className="h-4 w-4" />}
+              {loading ? "Sending M-Pesa Prompt..." : "Pay KES 1,000 via M-Pesa"}
             </Button>
           </form>
 
@@ -308,27 +200,6 @@ function RegisterForm() {
           </p>
         </CardContent>
       </Card>
-
-      <Dialog open={showPaystackInfo} onOpenChange={setShowPaystackInfo}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="font-heading text-xl text-lux-navy">Paystack Payment</DialogTitle>
-            <DialogDescription>
-              Complete your registration by paying the one-time membership fee
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="rounded-xl bg-lux-gold-pale border border-lux-gold/20 p-4 text-center">
-              <p className="font-heading font-bold text-2xl text-lux-navy">KES 1,000</p>
-              <p className="text-sm text-lux-text-light">One-time membership fee</p>
-              <p className="text-xs text-lux-gold font-semibold mt-2">+ KES 500 signup bonus after payment!</p>
-            </div>
-            <p className="text-sm text-lux-text text-center">
-              You will be redirected to Paystack secure checkout after submitting the form.
-            </p>
-          </div>
-        </DialogContent>
-      </Dialog>
     </div>
   )
 }

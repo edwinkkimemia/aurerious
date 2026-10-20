@@ -53,7 +53,7 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary_large_image",
     title: "Zuri Agency - Turn Your Network Into Monthly Income",
-    description: "Invest KES 1,000 → Get KES 500 bonus + Earn KES 350 per referral for life. 5,000+ earning. Instant Paystack & M-Pesa.",
+    description: "Invest KES 1,000 → Get KES 500 bonus + Earn KES 350 per referral for life. 5,000+ earning. Instant M-Pesa.",
     images: ["/images/heror.jpg"],
   },
   robots: { index: true, follow: true },
