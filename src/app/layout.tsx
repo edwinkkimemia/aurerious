@@ -43,10 +43,11 @@ export const metadata: Metadata = {
     locale: "en_KE",
     images: [
       {
-        url: "/images/heror.jpg",
+        url: "/images/og-heror.jpg",
+        type: "image/jpeg",
         width: 1200,
         height: 630,
-        alt: "Zuri Agency - Premium Referral Platform - Earn KES 350 Per Referral + KES 500 Bonus",
+        alt: "Zuri Agency - Share & Earn KES 350 per referral, paid directly to M-Pesa",
       },
     ],
   },
@@ -54,7 +55,15 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "Zuri Agency - Turn Your Network Into Monthly Income",
     description: "Invest KES 1,000 → Get KES 500 bonus + Earn KES 350 per referral for life. 5,000+ earning. Instant M-Pesa.",
-    images: ["/images/heror.jpg"],
+    images: [
+      {
+        url: "/images/og-heror.jpg",
+        type: "image/jpeg",
+        width: 1200,
+        height: 630,
+        alt: "Zuri Agency - Share & Earn KES 350 per referral, paid directly to M-Pesa",
+      },
+    ],
   },
   robots: { index: true, follow: true },
 };
